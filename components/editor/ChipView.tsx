@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { chipFill } from "@/lib/editor/chips";
 import { BIT_CELL, BIT_GAP, MAX_BIT_CELLS } from "@/lib/editor/layout";
 import type { SceneComp } from "@/lib/editor/scene";
 import { type Value, bit, formatValue, signalKind } from "@/lib/sim/value";
@@ -40,7 +41,7 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
           height={h}
           rx={4}
           className={selected ? "fill-chip stroke-accent" : "fill-chip stroke-chip-stroke"}
-          style={look.color ? { fill: look.color } : undefined}
+          style={look.color ? { fill: chipFill(look.color) } : undefined}
           strokeWidth={selected ? 2.5 : 1.5}
         />
         {isPin && width <= MAX_BIT_CELLS ? (

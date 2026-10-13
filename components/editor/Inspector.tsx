@@ -7,6 +7,7 @@ import { useEditor } from "@/lib/editor/store";
 import type { ComponentInst, Props } from "@/lib/model/types";
 import { getBuiltin } from "@/lib/sim/builtins";
 import { formatValue, parseValue } from "@/lib/sim/value";
+import { editChip } from "./actions";
 
 /** Editable props per built-in prop key: label, bounds and help text. */
 const FIELDS: Record<string, { label: string; min?: number; max?: number; help?: string }> = {
@@ -17,6 +18,7 @@ const FIELDS: Record<string, { label: string; min?: number; max?: number; help?:
 };
 
 const SHORTCUTS: [string, string][] = [
+  ["Ctrl+S", "Save as a block (asks for a name the first time)"],
   ["Click pin → click pin", "Draw a wire (click empty space for bends, or end on a wire)"],
   ["Drag / Shift-click", "Box-select / add to selection"],
   ["Click an Input Pin", "Toggle it (one cell per bit)"],
@@ -79,6 +81,15 @@ function ComponentForm({ comp }: { comp: ComponentInst }) {
       <h2 className="font-semibold">{look?.name ?? "Missing chip"}</h2>
       <Field label="Label" value={comp.label ?? ""} onCommit={(v) => update(comp.id, { label: v })} />
       {comp.chipId === "input" && <InputValueField compId={comp.id} width={look!.pins[0].width} />}
+      {!spec && look && (
+        <button
+          type="button"
+          onClick={() => editChip(comp.chipId)}
+          className="rounded-md border border-line px-2 py-1 text-left hover:bg-hover"
+        >
+          Open this block for editing
+        </button>
+      )}
       {keys.map((k) => {
         const f = FIELDS[k];
         const numeric = typeof spec!.defaultProps[k] === "number";

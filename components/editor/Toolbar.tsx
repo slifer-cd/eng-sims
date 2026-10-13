@@ -2,12 +2,14 @@
 
 import {
   AlertTriangle,
+  FilePlus,
   Maximize,
   Pause,
   Play,
   Redo2,
   RotateCcw,
   RotateCw,
+  Save,
   StepForward,
   Trash2,
   Undo2,
@@ -17,6 +19,7 @@ import {
 import type { ReactNode } from "react";
 import { SPEEDS, useSim } from "@/lib/editor/simStore";
 import { useEditor } from "@/lib/editor/store";
+import { newDesign } from "./actions";
 
 function ToolButton(props: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
@@ -40,6 +43,14 @@ export function Toolbar() {
   return (
     <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel px-3">
       <h1 className="mr-4 text-sm font-semibold">Eng Sims</h1>
+      <DesignName />
+      <ToolButton title="New design" onClick={newDesign}>
+        <FilePlus size={16} />
+      </ToolButton>
+      <ToolButton title={s.openChipId ? "Save block…" : "Save as block…"} onClick={() => s.setSaveDialogOpen(true)}>
+        <Save size={16} />
+      </ToolButton>
+      <div className="mx-2 h-5 w-px bg-line" />
       <ToolButton title="Undo (Ctrl+Z)" onClick={s.undo} disabled={!s.past.length}>
         <Undo2 size={16} />
       </ToolButton>
@@ -67,6 +78,24 @@ export function Toolbar() {
       <div className="mx-2 h-5 w-px bg-line" />
       <SimControls />
     </header>
+  );
+}
+
+/** The open block's name, or "Untitled design", marked when there are unsaved changes. */
+function DesignName() {
+  const name = useEditor((s) => s.chips.find((c) => c.id === s.openChipId)?.name);
+  const unsaved = useEditor((s) => s.circuit !== s.savedCircuit);
+  return (
+    <span className="mr-2 flex max-w-48 items-center gap-1 text-sm">
+      <span className={`truncate ${name ? "" : "text-muted"}`} title={name ? `Editing block "${name}"` : undefined}>
+        {name ?? "Untitled design"}
+      </span>
+      {unsaved && (
+        <span className="text-muted" title="Unsaved changes" aria-label="Unsaved changes">
+          •
+        </span>
+      )}
+    </span>
   );
 }
 

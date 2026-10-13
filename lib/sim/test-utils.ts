@@ -1,6 +1,6 @@
 import { derivePins } from "../model/pins";
 import type { ChipDef, Circuit, Props } from "../model/types";
-import type { ChipLibrary } from "./compile";
+import { type ChipLibrary, chipLibrary } from "./compile";
 
 type PinRef = [compId: string, pinId: string];
 
@@ -42,6 +42,5 @@ export function makeChip(id: string, name: string, circuit: Circuit): ChipDef {
 }
 
 export function library(...chips: ChipDef[]): ChipLibrary {
-  const byId = new Map(chips.map((c) => [c.id, c]));
-  return { get: (id) => byId.get(id) };
+  return chipLibrary(chips);
 }

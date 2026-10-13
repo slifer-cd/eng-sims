@@ -6,6 +6,11 @@ export interface ChipLibrary {
   get(id: string): ChipDef | undefined;
 }
 
+export function chipLibrary(chips: Iterable<ChipDef>): ChipLibrary {
+  const byId = new Map([...chips].map((c) => [c.id, c]));
+  return { get: (id) => byId.get(id) };
+}
+
 export interface Primitive {
   specId: string;
   /** Instance path of the containing circuit, "" at top level, e.g. "adder1/". */
