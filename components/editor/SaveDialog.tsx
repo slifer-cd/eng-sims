@@ -105,7 +105,7 @@ function SaveForm() {
                 className={`size-6 rounded-full border border-chip-stroke/40 ${
                   color === c ? "ring-2 ring-accent ring-offset-2 ring-offset-panel" : ""
                 }`}
-                style={{ background: chipFill(c) }}
+                style={{ colorScheme: "light dark", background: chipFill(c) }}
               />
             ))}
           </div>

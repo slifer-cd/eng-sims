@@ -41,7 +41,7 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
           height={h}
           rx={4}
           className={selected ? "fill-chip stroke-accent" : "fill-chip stroke-chip-stroke"}
-          style={look.color ? { fill: chipFill(look.color) } : undefined}
+          style={look.color ? { colorScheme: "light dark", fill: chipFill(look.color) } : undefined}
           strokeWidth={selected ? 2.5 : 1.5}
         />
         {isPin && width <= MAX_BIT_CELLS ? (

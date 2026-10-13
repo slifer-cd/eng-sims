@@ -7,13 +7,30 @@ import { newId } from "./ops";
  * Saving designs as custom chips ("blocks") and the rules that keep them nestable.
  */
 
-/** Block colours. Each is a theme variable `--block-<name>` in app/globals.css. */
-export const BLOCK_COLORS = ["slate", "red", "orange", "amber", "green", "teal", "blue", "violet", "pink"] as const;
+/** Block body colours by name: [light theme, dark theme]. */
+const BLOCK_PALETTE: Record<string, [string, string]> = {
+  slate: ["#e2e8f0", "#334155"],
+  red: ["#fecaca", "#7f1d1d"],
+  orange: ["#fed7aa", "#7c2d12"],
+  amber: ["#fde68a", "#78350f"],
+  green: ["#bbf7d0", "#14532d"],
+  teal: ["#99f6e4", "#134e4a"],
+  blue: ["#bfdbfe", "#1e3a8a"],
+  violet: ["#ddd6fe", "#4c1d95"],
+  pink: ["#fbcfe8", "#831843"],
+};
 
-/** CSS fill for a chip colour: a block colour name, or any CSS colour as-is. */
-export const chipFill = (color: string) =>
-  // Falls back to the plain chip colour rather than black if the variable is missing.
-  (BLOCK_COLORS as readonly string[]).includes(color) ? `var(--block-${color}, var(--chip))` : color;
+export const BLOCK_COLORS = Object.keys(BLOCK_PALETTE);
+
+/**
+ * CSS colour for a chip: a block colour name, or any CSS colour as-is. Block colours use
+ * `light-dark()`, so the element needs `colorScheme: "light dark"` in its style. They are
+ * kept out of globals.css because the dev server sometimes serves that file stale.
+ */
+export function chipFill(color: string) {
+  const shades = BLOCK_PALETTE[color];
+  return shades ? `light-dark(${shades[0]}, ${shades[1]})` : color;
+}
 
 /** A colour not used yet, so new blocks are easy to tell apart. */
 export function nextColor(chips: readonly ChipDef[]): string {

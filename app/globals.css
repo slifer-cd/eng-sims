@@ -21,16 +21,6 @@
   --sig-0: #64748b;
   --sig-z: #0284c7;
   --sig-x: #dc2626;
-  /* Body colours for blocks (saved custom chips), by name; see BLOCK_COLORS in lib/editor/chips.ts. */
-  --block-slate: #e2e8f0;
-  --block-red: #fecaca;
-  --block-orange: #fed7aa;
-  --block-amber: #fde68a;
-  --block-green: #bbf7d0;
-  --block-teal: #99f6e4;
-  --block-blue: #bfdbfe;
-  --block-violet: #ddd6fe;
-  --block-pink: #fbcfe8;
 }
 
 @theme inline {
@@ -75,15 +65,6 @@
     --sig-0: #64748b;
     --sig-z: #38bdf8;
     --sig-x: #f87171;
-    --block-slate: #334155;
-    --block-red: #7f1d1d;
-    --block-orange: #7c2d12;
-    --block-amber: #78350f;
-    --block-green: #14532d;
-    --block-teal: #134e4a;
-    --block-blue: #1e3a8a;
-    --block-violet: #4c1d95;
-    --block-pink: #831843;
   }
 }
 

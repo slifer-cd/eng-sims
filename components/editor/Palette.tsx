@@ -80,7 +80,7 @@ function BlockRow({ chip }: { chip: ChipDef }) {
         <span className={`flex min-w-0 items-center gap-2 ${nested ? "opacity-40" : ""}`}>
           <span
             className="size-3 shrink-0 rounded-sm border border-chip-stroke/50"
-            style={{ background: chipFill(chip.color) }}
+            style={{ colorScheme: "light dark", background: chipFill(chip.color) }}
           />
           <span className={`truncate ${isOpen ? "font-medium text-accent" : ""}`}>{chip.name}</span>
         </span>
