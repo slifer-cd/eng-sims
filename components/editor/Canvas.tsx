@@ -107,7 +107,8 @@ export function Canvas() {
 
   // Holding space turns left-drag into panning.
   useEffect(() => {
-    const isTyping = () => document.activeElement?.matches("input, textarea, select") ?? false;
+    const isTyping = () =>
+      useEditor.getState().saveDialogOpen || (document.activeElement?.matches("input, textarea, select") ?? false);
     const down = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isTyping()) {
         spaceHeld.current = true;

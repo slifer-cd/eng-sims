@@ -4,36 +4,61 @@ import { useEffect } from "react";
 import { useSim } from "@/lib/editor/simStore";
 import { useEditor } from "@/lib/editor/store";
 import type { Circuit } from "@/lib/model/types";
+import { indexedDbRepository } from "@/lib/storage/indexedDb";
+import { quickSave } from "./actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { Palette } from "./Palette";
+import { SaveDialog } from "./SaveDialog";
 import { Toolbar } from "./Toolbar";
 
-// Temporary scratch autosave until projects are stored in IndexedDB (milestone 4).
+/*
+ * The design on the canvas is autosaved as a draft in localStorage, which can be written
+ * synchronously when the page goes away. Blocks are saved explicitly, to IndexedDB.
+ */
 const SCRATCH_KEY = "eng-sims:scratch";
 
-function useScratchAutosave() {
+interface Draft {
+  circuit: Circuit;
+  /** The block the draft is an edit of. */
+  chipId: string | null;
+}
+
+function readDraft(): Draft | null {
+  const raw = JSON.parse(localStorage.getItem(SCRATCH_KEY) ?? "null");
+  // Older drafts are a bare circuit.
+  const draft: Draft | null = raw && "circuit" in raw ? raw : raw && { circuit: raw, chipId: null };
+  const c = draft?.circuit;
+  return c && Array.isArray(c.components) && Array.isArray(c.wires) ? draft : null;
+}
+
+/** Restore the draft, then load saved blocks; restoring first lets the store tell whether the draft is unsaved. */
+function usePersistence() {
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(SCRATCH_KEY) ?? "null") as Circuit | null;
-      if (saved && Array.isArray(saved.components) && Array.isArray(saved.wires)) {
-        useEditor.getState().load(saved);
+      const draft = readDraft();
+      if (draft) {
+        const { chipId, circuit } = draft;
+        useEditor.getState().load(circuit, { chipId, saved: !chipId && circuit.components.length === 0 });
         useEditor.getState().fitView();
       }
     } catch {
       // Unreadable or blocked storage: start empty.
     }
+    void useEditor.getState().attachStorage(indexedDbRepository());
+
     let timer: ReturnType<typeof setTimeout> | undefined;
     const save = () => {
       clearTimeout(timer);
       try {
-        localStorage.setItem(SCRATCH_KEY, JSON.stringify(useEditor.getState().circuit));
+        const { circuit, openChipId } = useEditor.getState();
+        localStorage.setItem(SCRATCH_KEY, JSON.stringify({ circuit, chipId: openChipId } satisfies Draft));
       } catch {
         // Storage full or blocked; nothing to do.
       }
     };
     const unsubscribe = useEditor.subscribe((s, prev) => {
-      if (s.circuit === prev.circuit) return;
+      if (s.circuit === prev.circuit && s.openChipId === prev.openChipId) return;
       clearTimeout(timer);
       timer = setTimeout(save, 300);
     });
@@ -50,10 +75,19 @@ function useScratchAutosave() {
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (document.activeElement?.matches("input, textarea, select")) return;
       const s = useEditor.getState();
       const mod = e.ctrlKey || e.metaKey;
       const key = e.key.toLowerCase();
+      if (mod && key === "s") {
+        // Never the browser's "save page".
+        e.preventDefault();
+        if (s.saveDialogOpen) return;
+        // Blurring commits a half-typed Inspector field before saving.
+        (document.activeElement as HTMLElement | null)?.blur();
+        quickSave();
+        return;
+      }
+      if (s.saveDialogOpen || document.activeElement?.matches("input, textarea, select")) return;
       let handled = true;
       if (mod && key === "z") (e.shiftKey ? s.redo : s.undo)();
       else if (mod && key === "y") s.redo();
@@ -102,7 +136,7 @@ function useSimulation() {
 }
 
 export function Editor() {
-  useScratchAutosave();
+  usePersistence();
   useShortcuts();
   useSimulation();
   return (
@@ -115,6 +149,7 @@ export function Editor() {
         </main>
         <Inspector />
       </div>
+      <SaveDialog />
     </div>
   );
 }

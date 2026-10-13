@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import type { Circuit, Endpoint, Point, Props } from "../model/types";
-import type { ChipLibrary } from "../sim/compile";
+import type { ChipDef, Circuit, Endpoint, Point, Props } from "../model/types";
+import { type ChipLibrary, chipLibrary } from "../sim/compile";
+import { type ChipRepository, memoryRepository } from "../storage/repository";
+import { type ChipMeta, chipUsers, designProblems, makeChipDef, nameProblem, sortChips } from "./chips";
 import { GRID } from "./layout";
 import {
   type Clip,
@@ -57,14 +59,36 @@ export interface EditorState {
   placing: Placing | null;
   drawing: DrawingWire | null;
   clipboard: Clip | null;
+  /** Saved custom chips ("blocks"), sorted by name. */
+  chips: ChipDef[];
   library: ChipLibrary;
+  /** The block open for editing: saving updates it. Null for a design not saved as a block. */
+  openChipId: string | null;
+  /** The circuit as last saved or opened. Any other circuit has unsaved changes. */
+  savedCircuit: Circuit | null;
+  /** Why saved blocks couldn't be loaded, e.g. storage blocked by the browser. */
+  storageError: string | null;
+  saveDialogOpen: boolean;
 
   /** Apply one undoable change to the circuit. */
   edit(recipe: (c: Circuit) => void): void;
   undo(): void;
   redo(): void;
-  /** Replace the circuit and clear history, e.g. when opening a saved design. */
-  load(circuit: Circuit): void;
+  /**
+   * Replace the circuit and clear history. `saved` says whether it matches what is
+   * stored, e.g. true when opening a block, false when restoring a draft.
+   */
+  load(circuit: Circuit, doc?: { chipId: string | null; saved: boolean }): void;
+  newDesign(): void;
+  openChip(chipId: string): void;
+
+  /** Use `repo` for blocks from now on and load the ones it holds. */
+  attachStorage(repo: ChipRepository): Promise<void>;
+  /** Save the circuit as a block: updates the open block unless `asNew`. Rejects with the first problem. */
+  saveChip(meta: ChipMeta, options?: { asNew?: boolean }): Promise<ChipDef>;
+  /** Delete a block. Rejects if other blocks use it. */
+  deleteChip(chipId: string): Promise<void>;
+  setSaveDialogOpen(open: boolean): void;
 
   addComponent(chipId: string, at: Point, props?: Props): string;
   updateComponent(compId: string, patch: { label?: string; props?: Props }): void;
@@ -91,12 +115,21 @@ export interface EditorState {
   cancel(): void;
 }
 
-const emptyLibrary: ChipLibrary = { get: () => undefined };
 const emptySelection = (): Selection => ({ comps: [], wires: [] });
+const emptyCircuit = (): Circuit => ({ components: [], wires: [] });
+
+/** Whether leaving the current design would lose work. */
+export const hasUnsavedWork = (s: EditorState) => s.circuit !== s.savedCircuit && s.circuit.components.length > 0;
+
+const sameCircuit = (a: Circuit, b: Circuit) => JSON.stringify(a) === JSON.stringify(b);
+
+let repository: ChipRepository = memoryRepository();
+
+const initialCircuit = emptyCircuit();
 
 export const useEditor = create<EditorState>()(
   immer((set, get) => ({
-    circuit: { components: [], wires: [] },
+    circuit: initialCircuit,
     past: [],
     future: [],
     selection: emptySelection(),
@@ -105,7 +138,12 @@ export const useEditor = create<EditorState>()(
     placing: null,
     drawing: null,
     clipboard: null,
-    library: emptyLibrary,
+    chips: [],
+    library: chipLibrary([]),
+    openChipId: null,
+    savedCircuit: initialCircuit,
+    storageError: null,
+    saveDialogOpen: false,
 
     edit(recipe) {
       set((s) => {
@@ -142,12 +180,92 @@ export const useEditor = create<EditorState>()(
       });
     },
 
-    load(circuit) {
+    load(circuit, doc = { chipId: null, saved: true }) {
       set((s) => {
         s.circuit = circuit;
         s.past = [];
         s.future = [];
         s.selection = emptySelection();
+        s.drawing = null;
+        s.openChipId = doc.chipId;
+        s.savedCircuit = doc.saved ? circuit : null;
+      });
+    },
+
+    newDesign() {
+      get().load(emptyCircuit());
+    },
+
+    openChip(chipId) {
+      const chip = get().library.get(chipId);
+      if (chip) get().load(chip.circuit, { chipId, saved: true });
+    },
+
+    async attachStorage(repo) {
+      repository = repo;
+      let chips: ChipDef[];
+      try {
+        chips = sortChips(await repo.list());
+      } catch (e) {
+        set((s) => {
+          s.storageError = e instanceof Error ? e.message : String(e);
+        });
+        return;
+      }
+      const { circuit, openChipId, savedCircuit } = get();
+      const open = chips.find((c) => c.id === openChipId);
+      set((s) => {
+        s.chips = chips;
+        s.library = chipLibrary(chips);
+        s.storageError = null;
+        if (!open) s.openChipId = null;
+        // A restored draft that matches its block has nothing unsaved.
+        else if (!savedCircuit && sameCircuit(open.circuit, circuit)) s.savedCircuit = circuit;
+      });
+    },
+
+    async saveChip(meta, { asNew = false } = {}) {
+      const { circuit, chips, library, openChipId } = get();
+      const existing = asNew ? undefined : chips.find((c) => c.id === openChipId);
+      const problem =
+        nameProblem(meta.name, chips, existing?.id ?? null) ?? designProblems(circuit, library, existing?.id ?? null)[0];
+      if (problem) throw new Error(problem);
+
+      const chip = makeChipDef(circuit, meta, existing);
+      await repository.put(chip);
+      // Read again: the library may have changed while saving.
+      const next = sortChips([...get().chips.filter((c) => c.id !== chip.id), chip]);
+      set((s) => {
+        s.chips = next;
+        s.library = chipLibrary(next);
+        s.openChipId = chip.id;
+        s.savedCircuit = circuit;
+      });
+      return chip;
+    },
+
+    async deleteChip(chipId) {
+      const users = chipUsers(chipId, get().chips);
+      if (users.length) {
+        throw new Error(`It is used inside ${users.map((c) => `"${c.name}"`).join(", ")}. Remove it from there first.`);
+      }
+      await repository.delete(chipId);
+      const next = get().chips.filter((c) => c.id !== chipId);
+      set((s) => {
+        s.chips = next;
+        s.library = chipLibrary(next);
+        if (s.placing?.chipId === chipId) s.placing = null;
+        if (s.openChipId === chipId) {
+          // The design stays on the canvas, but is no longer saved anywhere.
+          s.openChipId = null;
+          s.savedCircuit = null;
+        }
+      });
+    },
+
+    setSaveDialogOpen(open) {
+      set((s) => {
+        s.saveDialogOpen = open;
       });
     },
 
