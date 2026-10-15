@@ -115,3 +115,11 @@ body {
     scrollbar-color: var(--scroll-thumb) transparent;
   }
 }
+
+/* Glide to in-page links and scrolled-to elements unless the user prefers less motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html,
+  * {
+    scroll-behavior: smooth;
+  }
+}

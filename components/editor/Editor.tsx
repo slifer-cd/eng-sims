@@ -6,6 +6,7 @@ import { parsePaletteGroups } from "@/lib/editor/palette";
 import { dialogOpen, useEditor } from "@/lib/editor/store";
 import type { Circuit } from "@/lib/model/types";
 import { indexedDbRepository } from "@/lib/storage/indexedDb";
+import { PALETTE_KEY, SCRATCH_KEY } from "@/lib/storage/localKeys";
 import { newDesign, quickSave } from "./actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
@@ -18,9 +19,6 @@ import { Toolbar } from "./Toolbar";
  * The design on the canvas is autosaved as a draft in localStorage, which can be written
  * synchronously when the page goes away. Blocks are saved explicitly, to IndexedDB.
  */
-const SCRATCH_KEY = "eng-sims:scratch";
-/** The left bar's lists, as arranged in the Ctrl+L menu. */
-const PALETTE_KEY = "eng-sims:palette";
 
 interface Draft {
   circuit: Circuit;
