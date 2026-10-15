@@ -1,7 +1,7 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { useId, useState, type ReactNode } from "react";
 import { chipFill, wouldContainItself } from "@/lib/editor/chips";
 import { useEditor } from "@/lib/editor/store";
 import type { ChipDef } from "@/lib/model/types";
@@ -34,10 +34,29 @@ export function Palette() {
 }
 
 function Group({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(true);
+  const bodyId = useId();
+  const Chevron = open ? ChevronUp : ChevronDown;
   return (
     <section className="mb-4">
-      <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">{title}</h2>
-      <div className="grid gap-1">{children}</div>
+      <h2 className="mb-1.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          title={open ? `Collapse ${title}` : `Expand ${title}`}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center justify-between rounded-md px-1 py-0.5 text-xs font-medium tracking-wide text-muted uppercase hover:bg-hover hover:text-foreground"
+        >
+          {title}
+          <Chevron size={14} aria-hidden />
+        </button>
+      </h2>
+      {open && (
+        <div id={bodyId} className="grid gap-1">
+          {children}
+        </div>
+      )}
     </section>
   );
 }
