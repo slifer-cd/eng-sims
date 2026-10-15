@@ -16,7 +16,8 @@ export const BLOCKS_GROUP = "blocks";
 export const DEFAULT_GROUPS: readonly PaletteGroup[] = [
   { id: "io", title: "Inputs & outputs", items: ["input", "output", "clock", "vdd", "gnd"] },
   { id: "gates", title: "Gates", items: ["not", "and", "or", "nand", "nor", "xor", "xnor"] },
-  { id: "wiring", title: "Wiring", items: ["tristate", "splitter", "merger"] },
+  { id: "wiring", title: "Wiring", items: ["tristate", "splitter", "merger", "busend"] },
+  { id: "displays", title: "Displays", items: ["led", "seg7", "dotmatrix", "rgbmatrix"] },
   { id: BLOCKS_GROUP, title: "My blocks", items: [] },
 ];
 
@@ -28,8 +29,10 @@ export const blocksGroupId = (groups: readonly PaletteGroup[]) =>
 
 /**
  * The layout to show: unknown and duplicate ids dropped, and every built-in and block
- * placed exactly once. A missing built-in goes back to its default list (or the first
- * list); a missing block goes to the blocks list. Never returns an empty layout.
+ * placed exactly once. A missing built-in goes back to its default list, which is added
+ * at the end if the layout lacks it; a missing block goes to the blocks list. Removing
+ * a list in the Ctrl+L menu moves its parts, so built-ins only go missing when they are
+ * new since the layout was saved. Never returns an empty layout.
  */
 export function arrangePalette(groups: readonly PaletteGroup[], chipIds: readonly string[]): PaletteGroup[] {
   const blocks = new Set(chipIds);
@@ -43,8 +46,15 @@ export function arrangePalette(groups: readonly PaletteGroup[], chipIds: readonl
 
   for (const id of PALETTE_BUILTINS) {
     if (seen.has(id)) continue;
-    const home = DEFAULT_GROUPS.find((g) => g.items.includes(id))!.id;
-    (byId(home) ?? out[0]).items.push(id);
+    const home = DEFAULT_GROUPS.find((g) => g.items.includes(id))!;
+    let group = byId(home.id);
+    if (!group) {
+      group = { ...home, items: [] };
+      // Keep the blocks list last if it is.
+      const blocksAt = out.length && out.at(-1)!.id === BLOCKS_GROUP ? out.length - 1 : out.length;
+      out.splice(blocksAt, 0, group);
+    }
+    group.items.push(id);
   }
   const blockList = byId(blocksGroupId(out))!;
   for (const id of chipIds) if (!seen.has(id)) blockList.items.push(id);

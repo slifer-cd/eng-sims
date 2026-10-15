@@ -2,6 +2,7 @@ import { memo } from "react";
 import { chipFill } from "@/lib/editor/chips";
 import { BIT_CELL, BIT_GAP, MAX_BIT_CELLS } from "@/lib/editor/layout";
 import type { SceneComp } from "@/lib/editor/scene";
+import { BEZEL, BEZEL_TEXT, DisplayView } from "./DisplayView";
 import { type Value, bit, formatValue, signalKind } from "@/lib/sim/value";
 
 interface Props {
@@ -25,6 +26,12 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
   const { w, h } = layout;
   const isPin = comp.chipId === "input" || comp.chipId === "output";
   const width = isPin ? look.pins[0].width : 1;
+  // A display part's body is the display itself; an LED is round.
+  const bodyStyle = look.bare
+    ? { fill: BEZEL }
+    : look.color
+      ? { colorScheme: "light dark", fill: chipFill(look.color) }
+      : undefined;
 
   return (
     <g opacity={ghost ? 0.5 : 1} pointerEvents={ghost ? "none" : undefined}>
@@ -39,9 +46,9 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
           y={-h / 2}
           width={w}
           height={h}
-          rx={4}
+          rx={comp.chipId === "led" ? w / 2 : look.bare ? 6 : 4}
           className={selected ? "fill-chip stroke-accent" : "fill-chip stroke-chip-stroke"}
-          style={look.color ? { colorScheme: "light dark", fill: chipFill(look.color) } : undefined}
+          style={bodyStyle}
           strokeWidth={selected ? 2.5 : 1.5}
         />
         {isPin && width <= MAX_BIT_CELLS ? (
@@ -52,6 +59,19 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
             rotation={comp.rotation}
             clickable={comp.chipId === "input"}
           />
+        ) : layout.face.length > 0 ? (
+          // Name along the top, turning with the body like the displays do.
+          look.short && (
+            <text
+              y={layout.nameY}
+              textAnchor="middle"
+              dominantBaseline="central"
+              className="fill-chip-text font-mono text-[11px] font-semibold select-none"
+              pointerEvents="none"
+            >
+              {look.short}
+            </text>
+          )
         ) : (
           <text
             transform={`rotate(${-comp.rotation})`}
@@ -65,6 +85,9 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
             {isPin ? (value ? formatValue(value) : "–") : look.short}
           </text>
         )}
+        {layout.face.map((place, i) => (
+          <DisplayView key={i} path="" compId={comp.id} place={place} />
+        ))}
         {layout.pins.map(({ pin, x, y }) => (
           <g key={pin.id}>
             {look.pinLabels && (
@@ -74,6 +97,7 @@ export const ChipView = memo(function ChipView({ item, selected, ghost, value }:
                 textAnchor={pin.side === "left" ? "start" : pin.side === "right" ? "end" : "middle"}
                 dominantBaseline="central"
                 className="fill-muted font-mono text-[8px] select-none"
+                style={look.bare ? { fill: BEZEL_TEXT } : undefined}
                 pointerEvents="none"
               >
                 {pin.name}

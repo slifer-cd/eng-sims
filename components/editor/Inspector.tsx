@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { LED_COLORS } from "@/lib/editor/displays";
 import { describe } from "@/lib/editor/layout";
 import { useSim } from "@/lib/editor/simStore";
 import { useEditor } from "@/lib/editor/store";
@@ -9,12 +10,20 @@ import { getBuiltin } from "@/lib/sim/builtins";
 import { formatValue, parseValue } from "@/lib/sim/value";
 import { editChip } from "./actions";
 
+const SHOW_ON_BLOCK_HELP = "When this design is saved as a block, draw this display on the block.";
+
+/** What each 16×16 screen's pins do, shown under its fields. */
+const SCREEN_HELP =
+  "On a rising clk edge: clear wipes the buffer, write stores pixel (x, y) in it, show copies the buffer to the screen. x = 0, y = 0 is the top left.";
+
 /** Editable props per built-in prop key: label, bounds and help text. */
-const FIELDS: Record<string, { label: string; min?: number; max?: number; help?: string }> = {
+const FIELDS: Record<string, { label: string; min?: number; max?: number; help?: string; options?: string[] }> = {
   width: { label: "Bit width", min: 1, max: 32 },
   inputs: { label: "Inputs", min: 2, max: 16 },
   period: { label: "Half period (ticks)", min: 1, max: 1000 },
   parts: { label: "Parts (bits, low first)", help: "e.g. 4,4 or 1,3,4. Empty = one pin per bit." },
+  color: { label: "Colour", options: Object.keys(LED_COLORS) },
+  showOnBlock: { label: "Show on block", help: SHOW_ON_BLOCK_HELP },
 };
 
 const SHORTCUTS: [string, string][] = [
@@ -91,8 +100,45 @@ function ComponentForm({ comp }: { comp: ComponentInst }) {
           Open this block for editing
         </button>
       )}
+      {!spec && look?.face && (
+        <CheckField
+          label="Show on block"
+          help="When this design is saved as a block, draw this block's displays on it too."
+          checked={comp.props.showOnBlock !== false}
+          onChange={(v) => update(comp.id, { props: { showOnBlock: v } })}
+        />
+      )}
       {keys.map((k) => {
         const f = FIELDS[k];
+        if (typeof spec!.defaultProps[k] === "boolean") {
+          return (
+            <CheckField
+              key={k}
+              label={f.label}
+              help={f.help}
+              checked={props[k] !== false}
+              onChange={(v) => update(comp.id, { props: { [k]: v } })}
+            />
+          );
+        }
+        if (f.options) {
+          return (
+            <label key={k} className="grid gap-1">
+              <span className="text-xs text-muted">{f.label}</span>
+              <select
+                className="rounded-md border border-line bg-canvas px-2 py-1 capitalize outline-none focus:border-accent"
+                value={String(props[k])}
+                onChange={(e) => update(comp.id, { props: { [k]: e.target.value } })}
+              >
+                {f.options.map((o) => (
+                  <option key={o} value={o}>
+                    {o}
+                  </option>
+                ))}
+              </select>
+            </label>
+          );
+        }
         const numeric = typeof spec!.defaultProps[k] === "number";
         return (
           <Field
@@ -113,7 +159,25 @@ function ComponentForm({ comp }: { comp: ComponentInst }) {
           />
         );
       })}
+      {(comp.chipId === "dotmatrix" || comp.chipId === "rgbmatrix") && (
+        <p className="text-xs text-muted">{SCREEN_HELP}</p>
+      )}
     </div>
+  );
+}
+
+function CheckField(props: { label: string; help?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="grid grid-cols-[auto_1fr] items-start gap-x-2 gap-y-1">
+      <input
+        type="checkbox"
+        className="mt-0.5 accent-accent"
+        checked={props.checked}
+        onChange={(e) => props.onChange(e.target.checked)}
+      />
+      <span className="text-sm">{props.label}</span>
+      {props.help && <span className="col-start-2 text-xs text-muted">{props.help}</span>}
+    </label>
   );
 }
 

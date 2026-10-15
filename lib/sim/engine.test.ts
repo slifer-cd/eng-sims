@@ -309,3 +309,28 @@ describe("compile errors", () => {
     expect(compile(b.circuit, empty).errors).toHaveLength(1);
   });
 });
+
+describe("bus endpoints", () => {
+  it("only join wires: a bus between two endpoints carries the value", () => {
+    const b = new CircuitBuilder();
+    const a = b.add("input", { width: 8 }), e1 = b.add("busend", { width: 8 }), e2 = b.add("busend", { width: 8 });
+    const o = b.add("output", { width: 8 });
+    b.wire([a, "out"], [e1, "bus"]);
+    b.wire([e1, "bus"], [e2, "bus"]);
+    b.wire([e2, "bus"], [o, "in"]);
+    const netlist = compile(b.circuit, library());
+    expect(netlist.prims.map((p) => p.specId)).toEqual(["input"]);
+    const engine = new Engine(netlist);
+    engine.setInput(a, fromInt(8, 0xa5));
+    expect(engine.outputValue(o)?.v).toBe(0xa5);
+  });
+
+  it("reports a width mismatch", () => {
+    const b = new CircuitBuilder();
+    const a = b.add("input", { width: 4 }), e = b.add("busend", { width: 8 });
+    b.wire([a, "out"], [e, "bus"]);
+    expect(compile(b.circuit, library()).errors.map((x) => x.message)).toEqual([
+      expect.stringContaining("Width mismatch"),
+    ]);
+  });
+});

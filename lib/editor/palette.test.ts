@@ -26,9 +26,17 @@ describe("arrangePalette", () => {
   });
 
   it("puts every part somewhere when lists were removed", () => {
-    const out = arrangePalette([{ id: "only", title: "Everything", items: [] }], ["b1"]);
+    const builtins = DEFAULT_GROUPS.flatMap((g) => g.items);
+    const out = arrangePalette([{ id: "only", title: "Everything", items: builtins }], ["b1"]);
     expect(out).toHaveLength(1);
-    expect(out[0].items).toEqual(expect.arrayContaining([...DEFAULT_GROUPS.flatMap((g) => g.items), "b1"]));
+    expect(out[0].items).toEqual([...builtins, "b1"]);
+  });
+
+  it("adds the list of parts that are new since the layout was saved", () => {
+    const saved = DEFAULT_GROUPS.filter((g) => g.id !== "displays");
+    const out = arrangePalette(saved, []);
+    expect(out.map((g) => g.id)).toEqual(["io", "gates", "wiring", "displays", "blocks"]);
+    expect(ids(out).displays).toEqual(["led", "seg7", "dotmatrix", "rgbmatrix"]);
   });
 
   it("falls back to the defaults for an empty layout", () => {

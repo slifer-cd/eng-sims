@@ -124,10 +124,10 @@ export interface EditorState {
 const emptySelection = (): Selection => ({ comps: [], wires: [] });
 const emptyCircuit = (): Circuit => ({ components: [], wires: [] });
 
-/** Whether leaving the current design would lose work. */
 /** While a dialog is open, editor shortcuts are off. */
 export const dialogOpen = (s: EditorState) => s.saveDialogOpen || s.paletteDialogOpen;
 
+/** Whether leaving the current design would lose work. */
 export const hasUnsavedWork = (s: EditorState) => s.circuit !== s.savedCircuit && s.circuit.components.length > 0;
 
 const sameCircuit = (a: Circuit, b: Circuit) => JSON.stringify(a) === JSON.stringify(b);
