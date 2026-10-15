@@ -1,65 +1,95 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { ChevronDown, ChevronUp, ListTree, Pencil, Trash2 } from "lucide-react";
+import { useId, useMemo, useState, type ReactNode } from "react";
 import { chipFill, wouldContainItself } from "@/lib/editor/chips";
+import { arrangePalette, blocksGroupId } from "@/lib/editor/palette";
 import { useEditor } from "@/lib/editor/store";
 import type { ChipDef } from "@/lib/model/types";
 import { getBuiltin } from "@/lib/sim/builtins";
 import { deleteChip, editChip } from "./actions";
 
-const GROUPS: { title: string; ids: string[] }[] = [
-  { title: "Inputs & outputs", ids: ["input", "output", "clock", "vdd", "gnd"] },
-  { title: "Gates", ids: ["not", "and", "or", "nand", "nor", "xor", "xnor"] },
-  { title: "Wiring", ids: ["tristate", "splitter", "merger"] },
-];
-
 const PLACE_HINT = "Click, then click on the canvas, or drag onto the canvas. Shift-click places several.";
 
 export function Palette() {
+  const stored = useEditor((s) => s.paletteGroups);
+  const chips = useEditor((s) => s.chips);
+  const groups = useMemo(() => arrangePalette(stored, chips.map((c) => c.id)), [stored, chips]);
+  const blocksId = blocksGroupId(groups);
+  const chipById = useMemo(() => new Map(chips.map((c) => [c.id, c])), [chips]);
+
   return (
-    <aside className="w-48 shrink-0 overflow-y-auto border-r border-line bg-panel p-3 text-sm">
-      {GROUPS.map((g) => (
-        <Group key={g.title} title={g.title}>
-          {g.ids.map((id) => (
-            <PlaceButton key={id} chipId={id}>
-              {getBuiltin(id)!.name}
-            </PlaceButton>
-          ))}
-        </Group>
-      ))}
-      <MyBlocks />
+    <aside className="flex w-48 shrink-0 flex-col border-r border-line bg-panel text-sm">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3">
+        {groups.map((g, i) => (
+          // Only the first two lists start open, to keep the bar short.
+          <Group key={g.id} title={g.title} defaultOpen={i < 2}>
+            {g.id === blocksId && <BlocksHint />}
+            {g.items.map((id) => {
+              const chip = chipById.get(id);
+              return chip ? (
+                <BlockRow key={id} chip={chip} />
+              ) : (
+                <PlaceButton key={id} chipId={id}>
+                  {getBuiltin(id)!.name}
+                </PlaceButton>
+              );
+            })}
+          </Group>
+        ))}
+      </div>
+      <button
+        type="button"
+        title="Rename lists and choose which list each part is in (Ctrl+L)"
+        onClick={() => useEditor.getState().setPaletteDialogOpen(true)}
+        className="flex items-center gap-2 border-t border-line px-3 py-2 text-xs text-muted hover:bg-hover hover:text-foreground"
+      >
+        <ListTree size={14} aria-hidden />
+        Arrange lists
+        <kbd className="ml-auto font-mono text-[10px]">Ctrl+L</kbd>
+      </button>
     </aside>
   );
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
+function Group({ title, defaultOpen, children }: { title: string; defaultOpen: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const bodyId = useId();
+  const Chevron = open ? ChevronUp : ChevronDown;
   return (
     <section className="mb-4">
-      <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">{title}</h2>
-      <div className="grid gap-1">{children}</div>
+      <h2 className="mb-1.5">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={bodyId}
+          title={open ? `Collapse ${title}` : `Expand ${title}`}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center justify-between rounded-md px-1 py-0.5 text-xs font-semibold tracking-wide text-accent uppercase hover:bg-hover"
+        >
+          {title}
+          <Chevron size={14} aria-hidden />
+        </button>
+      </h2>
+      {open && (
+        <div id={bodyId} className="grid gap-1">
+          {children}
+        </div>
+      )}
     </section>
   );
 }
 
-function MyBlocks() {
-  const chips = useEditor((s) => s.chips);
+/** Shown in the list new blocks go to: how to make one, or why they're missing. */
+function BlocksHint() {
+  const hasChips = useEditor((s) => s.chips.length > 0);
   const storageError = useEditor((s) => s.storageError);
+  if (storageError) return <p className="text-xs text-sig-x">Saved blocks are unavailable: {storageError}</p>;
+  if (hasChips) return null;
   return (
-    <Group title="My blocks">
-      {storageError ? (
-        <p className="text-xs text-sig-x">Saved blocks are unavailable: {storageError}</p>
-      ) : (
-        chips.length === 0 && (
-          <p className="text-xs text-muted">
-            Build a design with Input and Output Pins, then save it as a block (Ctrl+S) to reuse it here.
-          </p>
-        )
-      )}
-      {chips.map((chip) => (
-        <BlockRow key={chip.id} chip={chip} />
-      ))}
-    </Group>
+    <p className="text-xs text-muted">
+      Build a design with Input and Output Pins, then save it as a block (Ctrl+S) to reuse it here.
+    </p>
   );
 }
 

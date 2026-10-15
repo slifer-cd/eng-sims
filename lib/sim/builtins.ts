@@ -1,4 +1,5 @@
 import type { PinDef, Props } from "../model/types";
+import { newScreen, type ScreenState, stepScreen } from "./display";
 import {
   type Value,
   MAX_WIDTH,
@@ -21,6 +22,8 @@ export interface EvalContext {
   time: number;
   /** The externally set value of a top-level Input Pin. */
   input?: Value;
+  /** This primitive's own state, from `initialState`. `evaluate` may change it. */
+  state?: unknown;
 }
 
 export interface PrimitiveSpec {
@@ -36,6 +39,11 @@ export interface PrimitiveSpec {
   evaluate(inputs: Value[], props: Props, ctx: EvalContext): Value[];
   /** Output values before the first evaluation. Defaults to all zeros. */
   initial?(props: Props): Value[];
+  /**
+   * State kept besides the outputs, e.g. a screen's pixels. A primitive with neither
+   * outputs nor state is never evaluated: views read its input pins directly.
+   */
+  initialState?(props: Props): unknown;
 }
 
 const clampWidth = (w: unknown) =>
@@ -95,6 +103,35 @@ function constant(id: string, name: string, value: (w: number) => Value): Primit
     defaultProps: { width: 1 },
     pins: (props) => [pin("out", "out", widthOf(props), 0)],
     evaluate: (_, props) => [value(widthOf(props))],
+  };
+}
+
+/** 7-segment display pins, in order. */
+export const SEGMENTS = ["a", "b", "c", "d", "e", "f", "g", "dp"] as const;
+
+/** A 16×16 double-buffered screen (see display.ts) whose pixels come from `data` pins. */
+function screen(id: string, name: string, data: PinDef[], defaultProps: Props): PrimitiveSpec {
+  return {
+    id,
+    name,
+    short: "",
+    pinLabels: true,
+    defaultProps: { ...defaultProps, showOnBlock: true },
+    pins: () =>
+      [
+        pin("x", "in", 4, 0),
+        pin("y", "in", 4, 0),
+        ...data,
+        pin("write", "in", 1, 0),
+        pin("clear", "in", 1, 0),
+        pin("show", "in", 1, 0),
+        pin("clk", "in", 1, 0),
+      ].map((p, order) => ({ ...p, order })),
+    evaluate(inputs, _, ctx) {
+      stepScreen(ctx.state as ScreenState, inputs);
+      return [];
+    },
+    initialState: newScreen,
   };
 }
 
@@ -193,6 +230,34 @@ const specs: PrimitiveSpec[] = [
     },
     evaluate: (parts) => [concat(parts)],
   },
+  {
+    // Only anchors a wire to a grid point; wires between two of them form a bus.
+    id: "busend",
+    name: "Bus Endpoint",
+    short: "",
+    defaultProps: { width: 1 },
+    pins: (props) => [pin("bus", "in", widthOf(props), 0)],
+    evaluate: () => [],
+  },
+  {
+    id: "led",
+    name: "LED",
+    short: "",
+    defaultProps: { color: "red", showOnBlock: true },
+    pins: () => [pin("in", "in", 1, 0)],
+    evaluate: () => [],
+  },
+  {
+    id: "seg7",
+    name: "7-Segment Display",
+    short: "",
+    pinLabels: true,
+    defaultProps: { color: "red", showOnBlock: true },
+    pins: () => SEGMENTS.map((s, i) => pin(s, "in", 1, i)),
+    evaluate: () => [],
+  },
+  screen("dotmatrix", "Dot Matrix 16×16", [pin("d", "in", 1, 0)], { color: "green" }),
+  screen("rgbmatrix", "RGB Display 16×16", ["r", "g", "b"].map((c) => pin(c, "in", 4, 0)), {}),
 ];
 
 export const BUILTINS: ReadonlyMap<string, PrimitiveSpec> = new Map(specs.map((s) => [s.id, s]));

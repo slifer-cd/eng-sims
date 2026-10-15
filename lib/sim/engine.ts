@@ -30,6 +30,10 @@ export class Engine {
   private specs: PrimitiveSpec[];
   private netValues: Value[];
   private outValues: Value[][];
+  /** Each primitive's own state (see PrimitiveSpec.initialState), or undefined. */
+  private states: unknown[];
+  /** Primitive index by instance key (path + component id). */
+  private primByInstance: Map<string, number>;
   private inputValues = new Map<number, Value>();
   private queue: number[] = [];
   private queued: Uint8Array;
@@ -41,6 +45,7 @@ export class Engine {
     this.specs = prims.map((p) => getBuiltin(p.specId)!);
     this.maxEvaluations = options.maxEvaluations ?? Math.max(10_000, prims.length * 100);
     this.queued = new Uint8Array(prims.length);
+    this.primByInstance = new Map(prims.map((p, i) => [p.path + p.compId, i]));
 
     const prev = options.previous?.outputsByInstance();
     this.outValues = prims.map((p, i) => {
@@ -51,6 +56,10 @@ export class Engine {
         if (kept && kept.width === nets[n].width) return kept;
         return initial?.[k] ?? zeros(nets[n].width);
       });
+    });
+    this.states = prims.map((p, i) => {
+      const old = prev?.get(p.path + p.compId);
+      return old?.specId === p.specId && old.state !== undefined ? old.state : this.specs[i].initialState?.(p.props);
     });
     if (options.previous) this.time = options.previous.time;
     for (const [compId, value] of options.inputs ?? options.previous?.inputSnapshot() ?? []) {
@@ -104,6 +113,12 @@ export class Engine {
     return n === undefined ? undefined : this.netValues[n];
   }
 
+  /** State of a primitive with `initialState` (e.g. a screen's ScreenState), at any depth. */
+  state(path: string, compId: string): unknown {
+    const i = this.primByInstance.get(path + compId);
+    return i === undefined ? undefined : this.states[i];
+  }
+
   /** Value on a top-level wire. */
   wireValue(wireId: string): Value | undefined {
     const n = this.netlist.netByKey.get(wireKey("", wireId));
@@ -116,8 +131,10 @@ export class Engine {
   }
 
   private outputsByInstance() {
-    const out = new Map<string, { specId: string; values: Value[] }>();
-    this.netlist.prims.forEach((p, i) => out.set(p.path + p.compId, { specId: p.specId, values: this.outValues[i] }));
+    const out = new Map<string, { specId: string; values: Value[]; state: unknown }>();
+    this.netlist.prims.forEach((p, i) =>
+      out.set(p.path + p.compId, { specId: p.specId, values: this.outValues[i], state: this.states[i] }),
+    );
     return out;
   }
 
@@ -154,7 +171,7 @@ export class Engine {
       const outs = this.specs[i].evaluate(
         prim.inputs.map((n) => this.netValues[n]),
         prim.props,
-        { time: this.time, input: this.inputValues.get(i) },
+        { time: this.time, input: this.inputValues.get(i), state: this.states[i] },
       );
       outs.forEach((raw, k) => {
         const netId = prim.outputs[k];

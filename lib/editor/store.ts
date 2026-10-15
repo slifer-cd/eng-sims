@@ -16,6 +16,7 @@ import {
   removeItems,
   rotateItems,
 } from "./ops";
+import { DEFAULT_GROUPS, type PaletteGroup } from "./palette";
 import { buildScene, sceneBounds } from "./scene";
 
 const HISTORY_LIMIT = 200;
@@ -69,6 +70,9 @@ export interface EditorState {
   /** Why saved blocks couldn't be loaded, e.g. storage blocked by the browser. */
   storageError: string | null;
   saveDialogOpen: boolean;
+  /** How the left bar groups parts; may be stale, so show it through `arrangePalette`. */
+  paletteGroups: PaletteGroup[];
+  paletteDialogOpen: boolean;
 
   /** Apply one undoable change to the circuit. */
   edit(recipe: (c: Circuit) => void): void;
@@ -89,6 +93,8 @@ export interface EditorState {
   /** Delete a block. Rejects if other blocks use it. */
   deleteChip(chipId: string): Promise<void>;
   setSaveDialogOpen(open: boolean): void;
+  setPaletteGroups(groups: PaletteGroup[]): void;
+  setPaletteDialogOpen(open: boolean): void;
 
   addComponent(chipId: string, at: Point, props?: Props): string;
   updateComponent(compId: string, patch: { label?: string; props?: Props }): void;
@@ -118,6 +124,9 @@ export interface EditorState {
 const emptySelection = (): Selection => ({ comps: [], wires: [] });
 const emptyCircuit = (): Circuit => ({ components: [], wires: [] });
 
+/** While a dialog is open, editor shortcuts are off. */
+export const dialogOpen = (s: EditorState) => s.saveDialogOpen || s.paletteDialogOpen;
+
 /** Whether leaving the current design would lose work. */
 export const hasUnsavedWork = (s: EditorState) => s.circuit !== s.savedCircuit && s.circuit.components.length > 0;
 
@@ -144,6 +153,8 @@ export const useEditor = create<EditorState>()(
     savedCircuit: initialCircuit,
     storageError: null,
     saveDialogOpen: false,
+    paletteGroups: structuredClone(DEFAULT_GROUPS) as PaletteGroup[],
+    paletteDialogOpen: false,
 
     edit(recipe) {
       set((s) => {
@@ -266,6 +277,18 @@ export const useEditor = create<EditorState>()(
     setSaveDialogOpen(open) {
       set((s) => {
         s.saveDialogOpen = open;
+      });
+    },
+
+    setPaletteGroups(groups) {
+      set((s) => {
+        s.paletteGroups = groups;
+      });
+    },
+
+    setPaletteDialogOpen(open) {
+      set((s) => {
+        s.paletteDialogOpen = open;
       });
     },
 

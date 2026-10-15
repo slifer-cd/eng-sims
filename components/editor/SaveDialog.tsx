@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BLOCK_COLORS, chipFill, designProblems, nameProblem, nextColor } from "@/lib/editor/chips";
+import { BLOCK_COLORS, chipFill, designProblems, makeChipDef, nameProblem, nextColor } from "@/lib/editor/chips";
+import { chipFace } from "@/lib/editor/displays";
 import { sceneComp } from "@/lib/editor/scene";
 import { useEditor } from "@/lib/editor/store";
 import { derivePins } from "@/lib/model/pins";
@@ -41,6 +42,10 @@ function SaveForm() {
   const copyIssue = nameProblem(name, chips, null) ?? designProblems(circuit, library, null)[0];
   // An empty name just disables saving; no need to say so.
   const problems = [...(name.trim() && nameIssue ? [nameIssue] : []), ...design];
+  const hasFace = useMemo(
+    () => chipFace(makeChipDef(circuit, { name: "", color: "" }), library).length > 0,
+    [circuit, library],
+  );
 
   async function save(asNew: boolean) {
     setBusy(true);
@@ -116,6 +121,7 @@ function SaveForm() {
           <BlockPreview name={name} color={color} />
           <span className="text-xs text-muted">
             Pins are the Input and Output Pins in the design, top to bottom, named by their labels.
+            {hasFace && " Displays appear on the block; to hide one, select it and untick Show on block."}
           </span>
         </div>
 
