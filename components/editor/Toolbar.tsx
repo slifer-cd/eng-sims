@@ -50,7 +50,7 @@ export function Toolbar() {
         Eng Sims
       </h1>
       <DesignName />
-      <ToolButton title="New design" onClick={newDesign}>
+      <ToolButton title="New design (Alt+N)" onClick={newDesign}>
         <FilePlus size={16} />
       </ToolButton>
       <ToolButton title={s.openChipId ? "Save block…" : "Save as block…"} onClick={() => s.setSaveDialogOpen(true)}>

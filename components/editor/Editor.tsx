@@ -6,7 +6,7 @@ import { parsePaletteGroups } from "@/lib/editor/palette";
 import { dialogOpen, useEditor } from "@/lib/editor/store";
 import type { Circuit } from "@/lib/model/types";
 import { indexedDbRepository } from "@/lib/storage/indexedDb";
-import { quickSave } from "./actions";
+import { newDesign, quickSave } from "./actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { Palette } from "./Palette";
@@ -109,6 +109,16 @@ function useShortcuts() {
         // Blurring commits a half-typed Inspector field before saving.
         (document.activeElement as HTMLElement | null)?.blur();
         quickSave();
+        return;
+      }
+      // Not Ctrl+N: browsers keep it for a new window and never send it to the page.
+      // Matched by key code because Alt+N types a character on macOS.
+      if (e.altKey && !mod && e.code === "KeyN") {
+        e.preventDefault();
+        if (dialogOpen(s)) return;
+        // Blurring commits a half-typed Inspector field first.
+        (document.activeElement as HTMLElement | null)?.blur();
+        newDesign();
         return;
       }
       if (mod && key === "l") {

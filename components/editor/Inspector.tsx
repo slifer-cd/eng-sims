@@ -27,6 +27,7 @@ const FIELDS: Record<string, { label: string; min?: number; max?: number; help?:
 };
 
 const SHORTCUTS: [string, string][] = [
+  ["Alt+N", "New design"],
   ["Ctrl+S", "Save as a block (asks for a name the first time)"],
   ["Ctrl+L", "Arrange the lists in the left bar"],
   ["Click pin → click pin", "Draw a wire (click empty space for bends, or end on a wire)"],

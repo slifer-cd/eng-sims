@@ -18,6 +18,9 @@
   --chip-text: #0f172a;
   --wire: #475569;
   --accent: #2563eb;
+  /* Scrollbar thumb: at rest and hovered. */
+  --scroll-thumb: #c3cde0;
+  --scroll-thumb-hover: #93a3c0;
   /* Signal colours: high, low, floating and conflict/unknown. */
   --sig-1: #22c55e;
   --sig-0: #64748b;
@@ -40,6 +43,8 @@
   --color-chip-text: var(--chip-text);
   --color-wire: var(--wire);
   --color-accent: var(--accent);
+  --color-scroll-thumb: var(--scroll-thumb);
+  --color-scroll-thumb-hover: var(--scroll-thumb-hover);
   --color-sig-1: var(--sig-1);
   --color-sig-0: var(--sig-0);
   --color-sig-z: var(--sig-z);
@@ -65,6 +70,8 @@
     --chip-text: #e5e7eb;
     --wire: #94a3b8;
     --accent: #60a5fa;
+    --scroll-thumb: #2c3a58;
+    --scroll-thumb-hover: #46587e;
     --sig-1: #4ade80;
     --sig-0: #64748b;
     --sig-z: #38bdf8;
@@ -76,4 +83,35 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Slim scrollbars: a rounded thumb on a clear track. Chrome and Safari use the
+ * ::-webkit-scrollbar rules. Firefox only has the standard properties, which are
+ * scoped to it because setting them makes Chrome ignore the rules above.
+ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
 }

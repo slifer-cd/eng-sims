@@ -21,8 +21,9 @@ export function Palette() {
   return (
     <aside className="flex w-48 shrink-0 flex-col border-r border-line bg-panel text-sm">
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        {groups.map((g) => (
-          <Group key={g.id} title={g.title}>
+        {groups.map((g, i) => (
+          // Only the first two lists start open, to keep the bar short.
+          <Group key={g.id} title={g.title} defaultOpen={i < 2}>
             {g.id === blocksId && <BlocksHint />}
             {g.items.map((id) => {
               const chip = chipById.get(id);
@@ -51,8 +52,8 @@ export function Palette() {
   );
 }
 
-function Group({ title, children }: { title: string; children: ReactNode }) {
-  const [open, setOpen] = useState(true);
+function Group({ title, defaultOpen, children }: { title: string; defaultOpen: boolean; children: ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
   const bodyId = useId();
   const Chevron = open ? ChevronUp : ChevronDown;
   return (
