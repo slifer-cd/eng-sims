@@ -2,6 +2,7 @@
 
 import {
   AlertTriangle,
+  Cpu,
   FilePlus,
   Maximize,
   Pause,
@@ -41,8 +42,13 @@ export function Toolbar() {
   const hasSelection = s.selection.comps.length + s.selection.wires.length > 0;
 
   return (
-    <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel px-3">
-      <h1 className="mr-4 text-sm font-semibold">Eng Sims</h1>
+    <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel bg-linear-to-r from-accent/15 via-panel to-panel px-3">
+      <h1 className="mr-4 flex items-center gap-2 text-sm font-semibold">
+        <span className="grid size-6 place-items-center rounded-md bg-accent text-white shadow-sm">
+          <Cpu size={14} aria-hidden />
+        </span>
+        Eng Sims
+      </h1>
       <DesignName />
       <ToolButton title="New design" onClick={newDesign}>
         <FilePlus size={16} />

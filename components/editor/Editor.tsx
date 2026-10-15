@@ -2,13 +2,15 @@
 
 import { useEffect } from "react";
 import { useSim } from "@/lib/editor/simStore";
-import { useEditor } from "@/lib/editor/store";
+import { parsePaletteGroups } from "@/lib/editor/palette";
+import { dialogOpen, useEditor } from "@/lib/editor/store";
 import type { Circuit } from "@/lib/model/types";
 import { indexedDbRepository } from "@/lib/storage/indexedDb";
 import { quickSave } from "./actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { Palette } from "./Palette";
+import { PaletteDialog } from "./PaletteDialog";
 import { SaveDialog } from "./SaveDialog";
 import { Toolbar } from "./Toolbar";
 
@@ -17,6 +19,8 @@ import { Toolbar } from "./Toolbar";
  * synchronously when the page goes away. Blocks are saved explicitly, to IndexedDB.
  */
 const SCRATCH_KEY = "eng-sims:scratch";
+/** The left bar's lists, as arranged in the Ctrl+L menu. */
+const PALETTE_KEY = "eng-sims:palette";
 
 interface Draft {
   circuit: Circuit;
@@ -30,6 +34,26 @@ function readDraft(): Draft | null {
   const draft: Draft | null = raw && "circuit" in raw ? raw : raw && { circuit: raw, chipId: null };
   const c = draft?.circuit;
   return c && Array.isArray(c.components) && Array.isArray(c.wires) ? draft : null;
+}
+
+/** Load the left bar's layout and save it whenever it changes. */
+function usePaletteLayout() {
+  useEffect(() => {
+    try {
+      const groups = parsePaletteGroups(JSON.parse(localStorage.getItem(PALETTE_KEY) ?? "null"));
+      if (groups) useEditor.getState().setPaletteGroups(groups);
+    } catch {
+      // Unreadable or blocked storage: keep the default lists.
+    }
+    return useEditor.subscribe((s, prev) => {
+      if (s.paletteGroups === prev.paletteGroups) return;
+      try {
+        localStorage.setItem(PALETTE_KEY, JSON.stringify(s.paletteGroups));
+      } catch {
+        // Storage full or blocked; nothing to do.
+      }
+    });
+  }, []);
 }
 
 /** Restore the draft, then load saved blocks; restoring first lets the store tell whether the draft is unsaved. */
@@ -81,13 +105,19 @@ function useShortcuts() {
       if (mod && key === "s") {
         // Never the browser's "save page".
         e.preventDefault();
-        if (s.saveDialogOpen) return;
+        if (dialogOpen(s)) return;
         // Blurring commits a half-typed Inspector field before saving.
         (document.activeElement as HTMLElement | null)?.blur();
         quickSave();
         return;
       }
-      if (s.saveDialogOpen || document.activeElement?.matches("input, textarea, select")) return;
+      if (mod && key === "l") {
+        // Never the browser's address bar.
+        e.preventDefault();
+        if (!dialogOpen(s)) s.setPaletteDialogOpen(true);
+        return;
+      }
+      if (dialogOpen(s) || document.activeElement?.matches("input, textarea, select")) return;
       let handled = true;
       if (mod && key === "z") (e.shiftKey ? s.redo : s.undo)();
       else if (mod && key === "y") s.redo();
@@ -137,6 +167,7 @@ function useSimulation() {
 
 export function Editor() {
   usePersistence();
+  usePaletteLayout();
   useShortcuts();
   useSimulation();
   return (
@@ -150,6 +181,7 @@ export function Editor() {
         <Inspector />
       </div>
       <SaveDialog />
+      <PaletteDialog />
     </div>
   );
 }

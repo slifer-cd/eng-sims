@@ -19,6 +19,7 @@ const FIELDS: Record<string, { label: string; min?: number; max?: number; help?:
 
 const SHORTCUTS: [string, string][] = [
   ["Ctrl+S", "Save as a block (asks for a name the first time)"],
+  ["Ctrl+L", "Arrange the lists in the left bar"],
   ["Click pin → click pin", "Draw a wire (click empty space for bends, or end on a wire)"],
   ["Drag / Shift-click", "Box-select / add to selection"],
   ["Click an Input Pin", "Toggle it (one cell per bit)"],
@@ -53,7 +54,7 @@ export function Inspector() {
               ? `${selection.comps.length} parts, ${selection.wires.length} wires selected`
               : "Nothing selected"}
           </p>
-          <h2 className="mb-1.5 text-xs font-medium tracking-wide text-muted uppercase">Controls</h2>
+          <h2 className="mb-1.5 text-xs font-semibold tracking-wide text-accent uppercase">Controls</h2>
           <dl className="grid gap-1.5 text-xs">
             {SHORTCUTS.map(([k, v]) => (
               <div key={k}>
