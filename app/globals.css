@@ -5,19 +5,24 @@
   --foreground: #171717;
 
   /* Editor */
-  --panel: #ffffff;
-  --line: #e2e8f0;
-  --muted: #64748b;
-  --hover: #f1f5f9;
-  --canvas: #f8fafc;
-  --grid: #cbd5e1;
+  --panel: #f3f6fd;
+  --line: #d9e2f2;
+  --muted: #5a6a86;
+  --hover: #e2e9fb;
+  --canvas: #f7f9fe;
+  /* Soft light at the top of the canvas, fading into --canvas. */
+  --canvas-glow: #e3eaff;
+  --grid: #c3cee0;
   --chip: #ffffff;
-  --chip-stroke: #334155;
+  --chip-stroke: #1e293b;
   --chip-text: #0f172a;
   --wire: #475569;
   --accent: #2563eb;
-  /* Signal colours: high, low, floating, conflict/unknown. */
-  --sig-1: #16a34a;
+  /* Scrollbar thumb: at rest and hovered. */
+  --scroll-thumb: #c3cde0;
+  --scroll-thumb-hover: #93a3c0;
+  /* Signal colours: high, low, floating and conflict/unknown. */
+  --sig-1: #22c55e;
   --sig-0: #64748b;
   --sig-z: #0284c7;
   --sig-x: #dc2626;
@@ -31,12 +36,15 @@
   --color-muted: var(--muted);
   --color-hover: var(--hover);
   --color-canvas: var(--canvas);
+  --color-canvas-glow: var(--canvas-glow);
   --color-grid: var(--grid);
   --color-chip: var(--chip);
   --color-chip-stroke: var(--chip-stroke);
   --color-chip-text: var(--chip-text);
   --color-wire: var(--wire);
   --color-accent: var(--accent);
+  --color-scroll-thumb: var(--scroll-thumb);
+  --color-scroll-thumb-hover: var(--scroll-thumb-hover);
   --color-sig-1: var(--sig-1);
   --color-sig-0: var(--sig-0);
   --color-sig-z: var(--sig-z);
@@ -50,17 +58,20 @@
     --background: #0a0a0a;
     --foreground: #ededed;
 
-    --panel: #0f141a;
-    --line: #1f2937;
-    --muted: #94a3b8;
-    --hover: #1a222c;
-    --canvas: #0b0f14;
-    --grid: #253041;
-    --chip: #111827;
-    --chip-stroke: #94a3b8;
+    --panel: #111a2c;
+    --line: #23314d;
+    --muted: #93a3c0;
+    --hover: #1c2846;
+    --canvas: #0b1120;
+    --canvas-glow: #172552;
+    --grid: #2a3754;
+    --chip: #162033;
+    --chip-stroke: #a5b4cb;
     --chip-text: #e5e7eb;
     --wire: #94a3b8;
     --accent: #60a5fa;
+    --scroll-thumb: #2c3a58;
+    --scroll-thumb-hover: #46587e;
     --sig-1: #4ade80;
     --sig-0: #64748b;
     --sig-z: #38bdf8;
@@ -72,4 +83,35 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Slim scrollbars: a rounded thumb on a clear track. Chrome and Safari use the
+ * ::-webkit-scrollbar rules. Firefox only has the standard properties, which are
+ * scoped to it because setting them makes Chrome ignore the rules above.
+ */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border: 3px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scroll-thumb-hover);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
 }

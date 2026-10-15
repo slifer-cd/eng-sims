@@ -9,15 +9,15 @@ import { newId } from "./ops";
 
 /** Block body colours by name: [light theme, dark theme]. */
 const BLOCK_PALETTE: Record<string, [string, string]> = {
-  slate: ["#e2e8f0", "#334155"],
-  red: ["#fecaca", "#7f1d1d"],
-  orange: ["#fed7aa", "#7c2d12"],
-  amber: ["#fde68a", "#78350f"],
-  green: ["#bbf7d0", "#14532d"],
-  teal: ["#99f6e4", "#134e4a"],
-  blue: ["#bfdbfe", "#1e3a8a"],
-  violet: ["#ddd6fe", "#4c1d95"],
-  pink: ["#fbcfe8", "#831843"],
+  slate: ["#cbd5e1", "#475569"],
+  red: ["#fca5a5", "#b91c1c"],
+  orange: ["#fdba74", "#c2410c"],
+  amber: ["#fcd34d", "#b45309"],
+  green: ["#86efac", "#15803d"],
+  teal: ["#5eead4", "#0f766e"],
+  blue: ["#93c5fd", "#1d4ed8"],
+  violet: ["#c4b5fd", "#6d28d9"],
+  pink: ["#f9a8d4", "#be185d"],
 };
 
 export const BLOCK_COLORS = Object.keys(BLOCK_PALETTE);

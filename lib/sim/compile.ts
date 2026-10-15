@@ -111,7 +111,9 @@ export function compile(top: Circuit, library: ChipLibrary): Netlist {
         const pins = spec.pins(props);
         for (const p of pins) addPin(pinKey(path, comp.id, p.id), p.width);
         const isBoundary = comp.chipId === "input" || comp.chipId === "output";
-        if (comp.chipId === "output" || (isBoundary && !isTop)) continue;
+        // Output Pins and plain displays only read their nets, so they need no evaluation.
+        const passive = !pins.some((p) => p.dir === "out") && !spec.initialState;
+        if (passive || (isBoundary && !isTop)) continue;
         pending.push({
           specId: spec.id,
           path,

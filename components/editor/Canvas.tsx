@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GRID, projectOntoPolyline, snap, snapPoint } from "@/lib/editor/layout";
 import { type MovePreview, buildScene, sceneComp } from "@/lib/editor/scene";
 import { useSim } from "@/lib/editor/simStore";
-import { useEditor } from "@/lib/editor/store";
+import { dialogOpen, useEditor } from "@/lib/editor/store";
 import type { Endpoint, Point } from "@/lib/model/types";
 import type { Engine } from "@/lib/sim/engine";
 import { ChipView } from "./ChipView";
@@ -108,7 +108,7 @@ export function Canvas() {
   // Holding space turns left-drag into panning.
   useEffect(() => {
     const isTyping = () =>
-      useEditor.getState().saveDialogOpen || (document.activeElement?.matches("input, textarea, select") ?? false);
+      dialogOpen(useEditor.getState()) || (document.activeElement?.matches("input, textarea, select") ?? false);
     const down = (e: KeyboardEvent) => {
       if (e.code === "Space" && !isTyping()) {
         spaceHeld.current = true;
@@ -279,7 +279,7 @@ export function Canvas() {
   return (
     <svg
       ref={svgRef}
-      className={`block h-full w-full touch-none bg-canvas ${panning ? "cursor-grabbing" : drawing || placing ? "cursor-crosshair" : ""}`}
+      className={`block h-full w-full touch-none bg-canvas bg-[radial-gradient(ellipse_at_top,var(--canvas-glow),var(--canvas)_70%)] ${panning ? "cursor-grabbing" : drawing || placing ? "cursor-crosshair" : ""}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
