@@ -17,6 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { SPEEDS, useSim } from "@/lib/editor/simStore";
 import { useEditor } from "@/lib/editor/store";
@@ -43,11 +44,18 @@ export function Toolbar() {
 
   return (
     <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel bg-linear-to-r from-accent/15 via-panel to-panel px-3">
-      <h1 className="mr-4 flex items-center gap-2 text-sm font-semibold">
-        <span className="grid size-6 place-items-center rounded-md bg-accent text-white shadow-sm">
-          <Cpu size={14} aria-hidden />
-        </span>
-        Eng Sims
+      <h1 className="mr-4 text-sm font-semibold">
+        {/* No unsaved-work prompt: the canvas draft is autosaved when the editor unmounts. */}
+        <Link
+          href="/"
+          title="Back to the home page"
+          className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-hover"
+        >
+          <span className="grid size-6 place-items-center rounded-md bg-accent text-white shadow-sm">
+            <Cpu size={14} aria-hidden />
+          </span>
+          Eng Sims
+        </Link>
       </h1>
       <DesignName />
       <ToolButton title="New design (Alt+N)" onClick={newDesign}>

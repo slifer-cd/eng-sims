@@ -1,7 +1,7 @@
 import { ArrowRight, Unplug } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { BUTTON_BLUE, BUTTON_GLASS, StatusPage } from "@/components/site/Glass";
+import { BUTTON_PRIMARY, BUTTON_GLASS, StatusPage } from "@/components/site/Glass";
 
 export const metadata: Metadata = {
   title: "Page not found · Eng Sims",
@@ -19,7 +19,7 @@ export default function NotFound() {
           <Link href="/" className={BUTTON_GLASS}>
             Back home
           </Link>
-          <Link href="/dls" className={BUTTON_BLUE}>
+          <Link href="/dls" className={BUTTON_PRIMARY}>
             Open the logic simulator
             <ArrowRight size={17} aria-hidden />
           </Link>
