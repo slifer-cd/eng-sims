@@ -115,6 +115,10 @@ export interface PlotProps {
   xLabel?: string;
   /** Label the x axis in multiples of π. */
   xPi?: boolean;
+  /** Label the y axis in multiples of π. */
+  yPi?: boolean;
+  /** Same scale on both axes (complex and s-planes): the ranges grow to fit. */
+  equal?: boolean;
   /** Values under the cursor, for the hover box. */
   readout?: (x: number) => Readout[] | null;
   xName?: string;
@@ -311,12 +315,19 @@ function drawPlot(
   colors: PlotColors,
   font: string,
 ) {
-  const [x0, x1] = view;
-  const [y0, y1] = p.y;
+  let [x0, x1] = view;
+  let [y0, y1] = p.y;
   const left = M.left;
   const top = M.top;
   const width = Math.max(10, W - M.left - M.right);
   const height = Math.max(10, H - M.top - M.bottom);
+  if (p.equal) {
+    const u = Math.max((x1 - x0) / width, (y1 - y0) / height);
+    const cx = (x0 + x1) / 2;
+    const cy = (y0 + y1) / 2;
+    [x0, x1] = [cx - (u * width) / 2, cx + (u * width) / 2];
+    [y0, y1] = [cy - (u * height) / 2, cy + (u * height) / 2];
+  }
   const px = (x: number) => left + ((x - x0) / (x1 - x0)) * width;
   const py = (y: number) => top + (1 - (y - y0) / (y1 - y0)) * height;
 
@@ -327,7 +338,8 @@ function drawPlot(
   // Graph paper: minor lines at a fifth of the major step, major lines at the ticks.
   const xTicks = p.xPi ? piTicks(x0, x1, Math.max(3, Math.floor(width / 90))) : null;
   const xs = xTicks ? xTicks.map((t) => t.value) : niceTicks(x0, x1, Math.max(3, Math.floor(width / 80)));
-  const ys = niceTicks(y0, y1, Math.max(3, Math.floor(height / 45)));
+  const yTicks = p.yPi ? piTicks(y0, y1, Math.max(3, Math.floor(height / 45))) : null;
+  const ys = yTicks ? yTicks.map((t) => t.value) : niceTicks(y0, y1, Math.max(3, Math.floor(height / 45)));
   const xStep = xs.length > 1 ? xs[1] - xs[0] : niceStep(x1 - x0, 5);
   const yStep = ys.length > 1 ? ys[1] - ys[0] : niceStep(y1 - y0, 4);
   ctx.lineWidth = 1;
@@ -385,7 +397,7 @@ function drawPlot(
   });
   ctx.textAlign = "right";
   ctx.textBaseline = "middle";
-  for (const v of ys) ctx.fillText(formatTick(v, yStep), left - 6, py(v));
+  ys.forEach((v, i) => ctx.fillText(yTicks ? yTicks[i].label : formatTick(v, yStep), left - 6, py(v)));
   if (p.xLabel) {
     ctx.textAlign = "right";
     ctx.textBaseline = "bottom";

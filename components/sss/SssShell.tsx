@@ -1,20 +1,6 @@
 "use client";
 
-import {
-  Activity,
-  AudioWaveform,
-  BookOpen,
-  ChartNoAxesColumn,
-  Combine,
-  Cpu,
-  Orbit,
-  Sigma,
-  Spline,
-  Waves,
-  type LucideIcon,
-  Workflow,
-  X,
-} from "lucide-react";
+import { Activity, AudioWaveform, BookOpen, Cpu, type LucideIcon, Sigma, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useRef } from "react";
@@ -28,23 +14,16 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-/** Pages listed in the left bar; a page is added here when it is built. */
+/** Pages listed in the left bar. */
 export const NAV: { group: string; items: NavItem[] }[] = [
   {
     group: "Continuous time",
-    items: [{ href: "/sss", label: "Signal", icon: Activity }],
+    items: [
+      { href: "/sss", label: "Signal", icon: Activity },
+      { href: "/sss/fourier", label: "Fourier transform", icon: AudioWaveform },
+      { href: "/sss/laplace", label: "Laplace transform", icon: Sigma },
+    ],
   },
-];
-
-export const PLANNED: NavItem[] = [
-  { href: "/sss/fourier", label: "Fourier transform", icon: AudioWaveform },
-  { href: "/sss/laplace", label: "Laplace transform", icon: Sigma },
-  { href: "/sss/series", label: "Fourier series", icon: Waves },
-  { href: "/sss/convolution", label: "Convolution", icon: Combine },
-  { href: "/sss/system", label: "LTI system", icon: Workflow },
-  { href: "/sss/discrete", label: "Sequence", icon: ChartNoAxesColumn },
-  { href: "/sss/discrete/z", label: "Z-transform", icon: Orbit },
-  { href: "/sss/discrete/dtft", label: "DTFT", icon: Spline },
 ];
 
 function Nav() {
