@@ -131,6 +131,32 @@ function bestShift(poly: number[], sigma: number, hints: number[], shiftPoly: bo
   return best;
 }
 
+/**
+ * Write c·e^{σt} as a·e^{σ(t−T₁)} + b·e^{σ(t−T₂)} with nice a and b, for two of the shift
+ * hints (convolution results are often exactly that).
+ */
+function splitAcrossShifts(c: number, sigma: number, hints: number[]): { c: number; T: number }[] | null {
+  const Ts = [...new Set([0, ...hints.filter(Number.isFinite)])];
+  const smalls = [1, -1, 2, -2, 0.5, -0.5, 3, -3];
+  for (const T1 of Ts) {
+    for (const a of smalls) {
+      const rest = c - a * Math.exp(-sigma * T1);
+      for (const T2 of Ts) {
+        if (T2 === T1) continue;
+        const b = rest / Math.exp(-sigma * T2);
+        const nb = nice(b);
+        if (nb.exact && Math.abs(b) > 1e-12 && complexity(b) <= 6) {
+          return [
+            { c: a, T: T1 },
+            { c: b, T: T2 },
+          ].sort((x, y) => y.T - x.T);
+        }
+      }
+    }
+  }
+  return null;
+}
+
 /** e^{σ(v−T)} factor, or r^{v−T} in discrete time. */
 function expFactor(sigma: number, v: string, T: number, discrete: boolean): string {
   if (Math.abs(sigma) < 1e-14) return "";
@@ -160,6 +186,17 @@ function realTerms(e: ExpPoly, opts: Required<FormatOptions>): Term[] {
     const sigma = g.rate.re;
     // Discrete: (−r)^n is a real rate with imaginary part π; handled below with the pairs.
     const { T, poly: q } = bestShift(poly, sigma, shiftHints, shiftPoly);
+    // A coefficient like e − 1 has no nice form, but e^{-(t-1)} − e^{-t} does.
+    if (q.length === 1 && Math.abs(sigma) > 1e-12 && !discrete && !nice(q[0]).exact) {
+      const split = splitAcrossShifts(poly[0], sigma, shiftHints);
+      if (split) {
+        for (const part of split) {
+          const n = nice(Math.abs(part.c));
+          terms.push({ sign: part.c < 0 ? -1 : 1, body: joinFactor(n.tex === "1" ? "" : n.tex, expFactor(sigma, v, part.T, false)) });
+        }
+        return;
+      }
+    }
     const ef = expFactor(sigma, v, T, discrete);
     if (!ef) {
       terms.push(...polyTerms(q, v, T));

@@ -1,6 +1,6 @@
 "use client";
 
-import { Activity, AudioWaveform, BookOpen, Cpu, type LucideIcon, Sigma, X } from "lucide-react";
+import { Activity, AudioWaveform, BookOpen, Combine, Cpu, type LucideIcon, Sigma, Waves, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useRef } from "react";
@@ -22,6 +22,8 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/sss", label: "Signal", icon: Activity },
       { href: "/sss/fourier", label: "Fourier transform", icon: AudioWaveform },
       { href: "/sss/laplace", label: "Laplace transform", icon: Sigma },
+      { href: "/sss/series", label: "Fourier series", icon: Waves },
+      { href: "/sss/convolution", label: "Convolution", icon: Combine },
     ],
   },
 ];
