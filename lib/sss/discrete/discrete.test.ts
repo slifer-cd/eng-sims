@@ -108,3 +108,12 @@ describe("discrete convolution", () => {
     expect(analyzeSeq({ ...seqDefaults, mode: "values", values: "1, x" }).kind).toBe("error");
   });
 });
+
+describe("discrete convolution display", () => {
+  it("writes single samples as values", () => {
+    const r = dconvolve(sig("0.8^n u(n)", {}, "dt"), sig("u(n) - u(n-4)", {}, "dt"));
+    expect(r.tex).toContain("1, & n=0");
+    expect(r.tex).toContain("\\frac{9}{5}, & n=1");
+    close(r.at(5), Math.pow(0.8, 5) + Math.pow(0.8, 4) + Math.pow(0.8, 3) + Math.pow(0.8, 2));
+  });
+});

@@ -6,7 +6,7 @@
 
 import { type C, cabs, cexp, cmul, cscale, cx } from "../math/complex";
 import { complexity, complexityC, nice, niceC } from "../math/nice";
-import { epSub, type ExpPoly, polyCompose } from "./exppoly";
+import { epEval, epSub, type ExpPoly, polyCompose } from "./exppoly";
 import { type Impulse, type Piece, type Signal, samePoint } from "./signal";
 
 export interface FormatOptions {
@@ -400,10 +400,12 @@ export function texCases(sig: Signal, options: FormatOptions = {}): string {
   if (pieces.length === 1 && pieces[0].from === -Infinity && pieces[0].to === Infinity) {
     main = texExpPoly(pieces[0].expr, { ...options, shiftHints: hints });
   } else if (pieces.length > 0) {
-    const rows = pieces.map(
-      (p) =>
-        `${texExpPoly(p.expr, { ...options, shiftHints: [p.from, ...hints] })}, & ${condition(p, v, discrete)}`,
-    );
+    const rows = pieces.map((p) => {
+      // A single sample reads best as its value.
+      const body =
+        discrete && samePoint(p.to - p.from, 1) ? niceC(epEval(p.expr, p.from)).tex : texExpPoly(p.expr, { ...options, shiftHints: [p.from, ...hints] });
+      return `${body}, & ${condition(p, v, discrete)}`;
+    });
     const covers =
       pieces[0].from === -Infinity &&
       pieces[pieces.length - 1].to === Infinity &&

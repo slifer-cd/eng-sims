@@ -6,7 +6,7 @@
 
 import { nice } from "../math/nice";
 import type { Analysis } from "../signal/analyze";
-import { texStepForm } from "../signal/format";
+import { texCases } from "../signal/format";
 import { type Signal, sigEval } from "../signal/signal";
 import type { Step } from "../steps";
 import { indexRange } from "./sequence";
@@ -64,7 +64,10 @@ export function dconvolve(x: Analysis, h: Analysis): DConvResult {
         { title: "Convolution becomes multiplication of Z-transforms", lines: [`Y(z) = X(z)H(z) = \\left(${X.tex}\\right)\\left(${H.tex}\\right)`, `\\phantom{Y(z)} = ${texZ(Y)}`] },
         ...inv.steps,
       );
-      return { at: (n) => sigEval(inv.signal, n).re, range, signal: inv.signal, tex: texStepForm(inv.signal, { v: "n", discrete: true }), steps };
+      // Interval by interval reads best for a convolution (as on the continuous page).
+      const tex = texCases(inv.signal, { v: "n", discrete: true });
+      steps.push({ title: "Written interval by interval", lines: [`y[n] = ${tex}`] });
+      return { at: (n) => sigEval(inv.signal, n).re, range, signal: inv.signal, tex, steps };
     }
   }
   return { at: direct, range, signal: null, tex: null, steps, note: "The Z-transforms have no common ROC, so y[n] is summed numerically (it may not converge)." };
