@@ -4,7 +4,7 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  /* Editor */
+  /* Editor colours */
   --panel: #f3f6fd;
   --line: #d9e2f2;
   --muted: #5a6a86;
@@ -26,6 +26,17 @@
   --sig-0: #64748b;
   --sig-z: #0284c7;
   --sig-x: #dc2626;
+
+  /* Signals & systems plots: surface, grid, axes and categorical series (CVD-validated). */
+  --plot-surface: #fbfcff;
+  --plot-grid: #e6ecf5;
+  --plot-grid-major: #d3dceb;
+  --plot-axis: #8a9ab5;
+  --plot-1: #2a78d6;
+  --plot-2: #eb6834;
+  --plot-3: #1baf7a;
+  --plot-4: #eda100;
+  --plot-5: #e87ba4;
 }
 
 @theme inline {
@@ -49,6 +60,14 @@
   --color-sig-0: var(--sig-0);
   --color-sig-z: var(--sig-z);
   --color-sig-x: var(--sig-x);
+  --color-plot-surface: var(--plot-surface);
+  --color-plot-grid: var(--plot-grid);
+  --color-plot-axis: var(--plot-axis);
+  --color-plot-1: var(--plot-1);
+  --color-plot-2: var(--plot-2);
+  --color-plot-3: var(--plot-3);
+  --color-plot-4: var(--plot-4);
+  --color-plot-5: var(--plot-5);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -76,6 +95,16 @@
     --sig-0: #64748b;
     --sig-z: #38bdf8;
     --sig-x: #f87171;
+
+    --plot-surface: #0e1626;
+    --plot-grid: #18233a;
+    --plot-grid-major: #22304c;
+    --plot-axis: #5d6f92;
+    --plot-1: #3987e5;
+    --plot-2: #d95926;
+    --plot-3: #199e70;
+    --plot-4: #c98500;
+    --plot-5: #d55181;
   }
 }
 

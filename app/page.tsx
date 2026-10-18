@@ -15,7 +15,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { HalfAdderArt } from "@/components/home/HalfAdderArt";
-import { Backdrop, GLASS as glass, Logo } from "@/components/site/Glass";
+import {
+  ACCENT_TEXT,
+  Backdrop,
+  BUTTON_GLASS,
+  BUTTON_RED,
+  BUTTON_PRIMARY,
+  GLASS as glass,
+  GLASS_HOVER,
+  GRADIENT_TEXT,
+  GRADIENT_TEXT_RED,
+  Logo,
+} from "@/components/site/Glass";
 
 export const metadata: Metadata = {
   title: "Eng Sims · Simulators and tools for engineers",
@@ -31,7 +42,7 @@ interface Tool {
   href?: string;
 }
 
-// Only the logic simulator exists so far; the rest are placeholders for planned tools.
+// Tools without an href are placeholders for planned tools.
 const TOOLS: Tool[] = [
   {
     name: "Digital logic simulator",
@@ -40,7 +51,12 @@ const TOOLS: Tool[] = [
     href: "/dls",
   },
   { name: "Analog circuits", blurb: "Resistors, capacitors and sources, with voltages and currents over time.", icon: Zap },
-  { name: "Signals & systems", blurb: "Generate, filter and inspect waveforms in time and frequency.", icon: Waves },
+  {
+    name: "Signals & systems",
+    blurb: "Transforms, Fourier series and convolution with exact formulas, worked steps and animations.",
+    icon: Waves,
+    href: "/sss",
+  },
   { name: "Engineering calculators", blurb: "Quick conversions and the formulas you look up every week.", icon: Calculator },
 ];
 
@@ -76,7 +92,7 @@ export default function Home() {
         <Logo />
         <Link
           href="/dls"
-          className={`${glass} flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium hover:bg-white/70 dark:hover:bg-white/10`}
+          className={`${glass} flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${GLASS_HOVER}`}
         >
           Open simulator
           <ArrowRight size={15} aria-hidden />
@@ -89,12 +105,12 @@ export default function Home() {
             <p
               className={`${glass} inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium text-muted`}
             >
-              <span className="size-1.5 rounded-full bg-sig-1" aria-hidden />
+              <span className="size-1.5 rounded-full bg-sky-500 shadow-[0_0_6px] shadow-sky-500" aria-hidden />
               Free, and runs entirely in your browser
             </p>
             <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
               Simulators and tools for engineers,{" "}
-              <span className="bg-linear-to-r from-sky-500 to-blue-700 bg-clip-text text-transparent dark:from-sky-300 dark:to-blue-500">
+              <span className={GRADIENT_TEXT}>
                 in one place.
               </span>
             </h1>
@@ -106,14 +122,14 @@ export default function Home() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link
                 href="/dls"
-                className="flex items-center gap-2 rounded-full bg-linear-to-r from-sky-500 to-blue-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-blue-500/25 hover:brightness-110"
+                className={BUTTON_PRIMARY}
               >
                 Launch the logic simulator
                 <ArrowRight size={17} aria-hidden />
               </Link>
               <a
                 href="#tools"
-                className={`${glass} rounded-full px-5 py-2.5 font-medium hover:bg-white/70 dark:hover:bg-white/10`}
+                className={BUTTON_GLASS}
               >
                 See the tools
               </a>
@@ -158,7 +174,7 @@ export default function Home() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
                 Start building{" "}
-                <span className="bg-linear-to-r from-red-500 to-red-700 bg-clip-text text-transparent dark:from-red-400 dark:to-red-600">
+                <span className={GRADIENT_TEXT_RED}>
                   in seconds
                 </span>
               </h2>
@@ -166,7 +182,7 @@ export default function Home() {
             </div>
             <Link
               href="/dls"
-              className="flex shrink-0 items-center gap-2 rounded-full bg-linear-to-r from-red-500 to-red-600 px-5 py-2.5 font-medium text-white shadow-lg shadow-red-500/25 hover:brightness-110"
+              className={`${BUTTON_RED} shrink-0`}
             >
               Open the editor
               <ArrowRight size={17} aria-hidden />
@@ -186,7 +202,7 @@ export default function Home() {
 function SectionTitle({ eyebrow, title }: { eyebrow: string; title: ReactNode }) {
   return (
     <div>
-      <p className="text-xs font-semibold tracking-wide text-accent uppercase">{eyebrow}</p>
+      <p className={`text-xs font-semibold tracking-wide uppercase ${ACCENT_TEXT}`}>{eyebrow}</p>
       <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
     </div>
   );
@@ -194,7 +210,9 @@ function SectionTitle({ eyebrow, title }: { eyebrow: string; title: ReactNode })
 
 function IconBadge({ icon: Icon }: { icon: LucideIcon }) {
   return (
-    <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-white/60 bg-white/60 text-accent dark:border-white/10 dark:bg-white/[0.06]">
+    <span
+      className={`grid size-10 shrink-0 place-items-center rounded-xl border border-white/70 bg-linear-to-br from-sky-100/90 to-blue-100/60 shadow-[inset_0_1px_0_rgb(255_255_255/0.9)] dark:border-white/15 dark:from-blue-400/20 dark:to-sky-400/5 dark:shadow-none ${ACCENT_TEXT}`}
+    >
       <Icon size={19} aria-hidden />
     </span>
   );
@@ -207,7 +225,7 @@ function ToolCard({ tool }: { tool: Tool }) {
         <IconBadge icon={tool.icon} />
         <span
           className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${
-            tool.href ? "bg-sig-1/15 text-sig-1" : "bg-muted/15 text-muted"
+            tool.href ? "bg-sky-500/15 text-blue-700 dark:text-sky-300" : "bg-muted/15 text-muted"
           }`}
         >
           {tool.href ? "Available" : "Coming soon"}
@@ -216,7 +234,7 @@ function ToolCard({ tool }: { tool: Tool }) {
       <h3 className="mt-4 font-semibold">{tool.name}</h3>
       <p className="mt-1 text-sm text-muted">{tool.blurb}</p>
       {tool.href && (
-        <span className="mt-4 flex items-center gap-1 text-sm font-medium text-accent">
+        <span className={`mt-4 flex items-center gap-1 text-sm font-medium ${ACCENT_TEXT}`}>
           Open
           <ArrowRight size={15} aria-hidden className="transition-transform group-hover:translate-x-0.5" />
         </span>
@@ -226,7 +244,7 @@ function ToolCard({ tool }: { tool: Tool }) {
   return tool.href ? (
     <Link
       href={tool.href}
-      className={`${glass} group block p-5 transition hover:-translate-y-0.5 hover:bg-white/65 dark:hover:bg-white/[0.08]`}
+      className={`${glass} group block p-5 transition hover:-translate-y-0.5 ${GLASS_HOVER}`}
     >
       {body}
     </Link>

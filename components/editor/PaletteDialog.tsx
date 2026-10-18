@@ -40,6 +40,8 @@ function PaletteForm() {
   useEffect(() => {
     const dialog = ref.current!;
     if (!dialog.open) dialog.showModal();
+    // showModal focuses the first focusable thing, the scrolling list; start on the first name instead.
+    dialog.querySelector("input")?.focus();
   }, []);
   const close = () => useEditor.getState().setPaletteDialogOpen(false);
 
