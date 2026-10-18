@@ -164,6 +164,24 @@ export function nice(x: number): Nice {
   return make(sign, d.tex, null, d.text, null, false);
 }
 
+/**
+ * Juxtapose two LaTeX factors, with a space after a command (\pi t, never the undefined \pit)
+ * and a thin space between letters (t\,u).
+ */
+export function joinFactor(a: string, b: string): string {
+  if (!a) return b;
+  if (!b) return a;
+  if (/\\[A-Za-z]+$/.test(a)) return `${a} ${b}`;
+  if (/[A-Za-z]$/.test(a) && /^([A-Za-z]|\\[A-Za-z])/.test(b)) return `${a}\\,${b}`;
+  return `${a}${b}`;
+}
+
+/** j times a magnitude: 2j after a plain number, j\pi or j\sqrt{2} before a symbol. */
+function timesJ(num: string): string {
+  if (num === "1") return "j";
+  return /^[\d.]+$/.test(num) ? `${num}j` : `j${num}`;
+}
+
 /** Pretty form of a complex number: a + jb. */
 export function niceC(z: C): Nice {
   const scale = Math.max(1e-300, cabs(z));
@@ -171,12 +189,8 @@ export function niceC(z: C): Nice {
   const im = Math.abs(z.im) < 1e-10 * scale ? 0 : z.im;
   if (im === 0) return nice(re);
   const ni = nice(Math.abs(im));
-  const jTex = ni.den
-    ? `\\frac{${ni.num === "1" ? "" : ni.num}j}{${ni.den}}`
-    : ni.num === "1"
-      ? "j"
-      : `${ni.num}j`;
-  const jText = ni.denText ? `${ni.numText === "1" ? "" : ni.numText}j/${ni.denText}` : ni.numText === "1" ? "j" : `${ni.numText}j`;
+  const jTex = ni.den ? `\\frac{${timesJ(ni.num)}}{${ni.den}}` : timesJ(ni.num);
+  const jText = ni.denText ? `${timesJ(ni.numText)}/${ni.denText}` : timesJ(ni.numText);
   if (re === 0) {
     const sign: 1 | -1 = im < 0 ? -1 : 1;
     return {

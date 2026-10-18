@@ -8,7 +8,7 @@
 import type { Node } from "../expr/ast";
 import { compile } from "../expr/compile";
 import { type C, cabs, cdiv, cisZero, cscale, cx, ONE, ZERO } from "../math/complex";
-import { nice, niceC } from "../math/nice";
+import { joinFactor, nice, niceC } from "../math/nice";
 import { padd, pmul, type Poly, ptrim, type Root } from "../math/poly";
 import { epCompose, type ExpPoly, factorial } from "../signal/exppoly";
 import { texStepForm } from "../signal/format";
@@ -200,7 +200,7 @@ function pairTex(p: C, m: number, right: boolean): string {
   const d = texSMinus(p);
   const den = m === 1 ? d : `(${d})^{${m}}`;
   const tpow = m === 1 ? "" : m === 2 ? "t\\," : `\\frac{t^{${m - 1}}}{${factorial(m - 1)}}`;
-  const pe = cabs(p) < 1e-14 ? "" : Math.abs(p.im) < 1e-12 ? `e^{${nice(p.re).tex === "1" ? "" : nice(p.re).tex === "-1" ? "-" : nice(p.re).tex}t}` : `e^{(${niceC(p).tex})t}`;
+  const pe = cabs(p) < 1e-14 ? "" : Math.abs(p.im) < 1e-12 ? `e^{${joinFactor(nice(p.re).tex === "1" ? "" : nice(p.re).tex === "-1" ? "-" : nice(p.re).tex, "t")}}` : `e^{(${niceC(p).tex})t}`;
   const time = `${tpow}${pe}`;
   const step = right ? "u(t)" : "u(-t)";
   return `\\frac{1}{${den}} \\;\\leftrightarrow\\; ${right ? "" : "-"}${time}${step}`;

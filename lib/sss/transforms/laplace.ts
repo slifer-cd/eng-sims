@@ -7,7 +7,7 @@
  */
 
 import { type C, cabs, cadd, cexp, cisFinite, cmul, cscale, cx, ZERO } from "../math/complex";
-import { nice } from "../math/nice";
+import { joinFactor, nice, niceC } from "../math/nice";
 import { findRoots, type Root } from "../math/poly";
 import type { Analysis } from "../signal/analyze";
 import { epExp, epIntegral, epMul, type ExpPoly, factorial } from "../signal/exppoly";
@@ -23,6 +23,7 @@ import {
   sexprEval,
   sexprNormalize,
   type Strip,
+  texDelay,
   texSExpr,
   texSMinus,
   texStrip,
@@ -115,7 +116,7 @@ export function texIntegrand(expr: ExpPoly, v: string): string {
       const n = nice(c.re);
       const coef = n.tex === "1" ? "" : n.tex === "-1" ? "-" : n.tex;
       if (cabs(g.rate) < 1e-14) return `${coef}${kernel}`;
-      return `${coef}e^{-(${texSMinus(g.rate, v)})t}`;
+      return joinFactor(coef, `e^{-(${texSMinus(g.rate, v)})t}`);
     }
   }
   const body = texExpPoly(expr);
@@ -164,13 +165,14 @@ export function integralSteps(sig: Signal, v: "s" | "j\\omega", X: SExpr, opts: 
     steps.push({
       title: "Impulses pick out the kernel at their location (sifting property)",
       lines: sig.impulses.map((imp) => {
-        const area = nice(imp.area.re).tex;
+        const a = niceC(imp.area);
+        const area = a.tex === "1" ? "" : a.tex === "-1" ? "-" : Math.abs(imp.area.re) > 1e-12 && Math.abs(imp.area.im) > 1e-12 ? `\\left(${a.tex}\\right)` : a.tex;
         const d = imp.order === 0 ? "\\delta" : imp.order === 1 ? "\\delta'" : `\\delta^{(${imp.order})}`;
         const k = v === "s" ? "s" : "j\\omega";
         const pow = imp.order === 0 ? "" : imp.order === 1 ? k : `(${k})^{${imp.order}}`;
-        const shift = Math.abs(imp.at) < 1e-12 ? "" : v === "s" ? `e^{${-imp.at < 0 ? "-" : ""}${nice(Math.abs(imp.at)).tex === "1" ? "" : nice(Math.abs(imp.at)).tex}s}` : `e^{${-imp.at < 0 ? "-" : ""}j${nice(Math.abs(imp.at)).tex === "1" ? "" : nice(Math.abs(imp.at)).tex}\\omega}`;
         const t = Math.abs(imp.at) < 1e-12 ? "t" : `t${imp.at > 0 ? "-" : "+"}${nice(Math.abs(imp.at)).tex}`;
-        return `\\int ${area === "1" ? "" : area}${d}(${t})\\,${kernel}\\,dt = ${area === "1" ? "" : area}${pow}${shift || (pow ? "" : "1")}`;
+        const rhs = joinFactor(joinFactor(area, pow), texDelay(imp.at, v === "s" ? "s" : "jw"));
+        return `\\int ${area}${d}(${t})\\,${kernel}\\,dt = ${rhs === "" ? "1" : rhs === "-" ? "-1" : rhs}`;
       }),
     });
   }
@@ -263,7 +265,7 @@ export function texSpecialLaplace(t: SpecialTerm): string {
   const exp1 = `\\frac{(${sm})^{2}}{${q.tex}}`;
   const exp2 = Math.abs(t.shift) < 1e-12 ? "" : `${t.shift > 0 ? "-" : "+"}${nice(Math.abs(t.shift)).tex}(${sm})`;
   const n = nice(amp);
-  return `${n.tex === "1" ? "" : n.tex}e^{${exp1}${exp2}}`;
+  return joinFactor(n.tex === "1" ? "" : n.tex, `e^{${exp1}${exp2}}`);
 }
 
 export function specialSteps(special: SpecialTerm[], v: "s" | "jw"): Step[] {

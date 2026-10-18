@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { nice } from "@/lib/sss/math/nice";
+import { joinFactor, nice } from "@/lib/sss/math/nice";
 import type { Analysis } from "@/lib/sss/signal/analyze";
 import { texCases, texStepForm } from "@/lib/sss/signal/format";
 import { classify, energy, evenOdd, numericEnergy, power, timeRange } from "@/lib/sss/signal/properties";
@@ -279,7 +279,7 @@ function OperationsPanel(props: { an: Analysis; range: [number, number] }) {
   }, [an, range, A, result]);
   const lin = (k: number, c: number) => {
     // k·t − c as LaTeX
-    const kt = Math.abs(k - 1) < 1e-12 ? "t" : Math.abs(k + 1) < 1e-12 ? "-t" : `${nice(k).tex}t`;
+    const kt = Math.abs(k - 1) < 1e-12 ? "t" : Math.abs(k + 1) < 1e-12 ? "-t" : joinFactor(nice(k).tex, "t");
     if (Math.abs(c) < 1e-12) return kt;
     return `${kt}${c > 0 ? "-" : "+"}${nice(Math.abs(c)).tex}`;
   };

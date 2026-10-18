@@ -6,7 +6,7 @@
  */
 
 import { type C, cabs, cadd, cexp, cisFinite, cmul, cpow, cscale, cx, J, ZERO } from "../math/complex";
-import { nice, niceC } from "../math/nice";
+import { joinFactor, nice, niceC } from "../math/nice";
 import { fft, nextPow2 } from "../math/numeric";
 import type { Analysis } from "../signal/analyze";
 import { epAntideriv, epEval, epExp, epIntegral, epMul, type ExpPoly } from "../signal/exppoly";
@@ -85,6 +85,8 @@ export function fourier(an: Analysis): FourierResult {
   const special = an.special;
 
   const at = (w: number): C => {
+    // Everything cancelled exactly (sin t is only impulses); summing the pieces would leave rounding noise.
+    if (!X.length && !special.length) return ZERO;
     let v = ZERO;
     for (const p of sig.pieces) for (const g of p.expr) v = cadd(v, groupIntegral([g], p.from, p.to, w));
     for (const imp of sig.impulses) {
@@ -154,7 +156,8 @@ function joinPlus(parts: string[]): string {
 export function texFtImpulse(i: FtImpulse): string {
   const real = Math.abs(i.area.im) < 1e-12;
   const coef = real ? nice(i.area.re) : niceC(i.area);
-  const c = coef.tex === "1" ? "" : coef.tex === "-1" ? "-" : real ? coef.tex : `\\left(${coef.tex}\\right)`;
+  const imaginary = Math.abs(i.area.re) < 1e-12;
+  const c = coef.tex === "1" ? "" : coef.tex === "-1" ? "-" : real || imaginary ? coef.tex : `\\left(${coef.tex}\\right)`;
   const d = i.order === 0 ? "\\delta" : i.order === 1 ? "\\delta'" : `\\delta^{(${i.order})}`;
   const arg = Math.abs(i.at) < 1e-12 ? "\\omega" : `\\omega${i.at > 0 ? "-" : "+"}${nice(Math.abs(i.at)).tex}`;
   return `${c}${d}(${arg})`;
@@ -171,7 +174,7 @@ export function texSpecialFourier(t: SpecialTerm): string {
   if (t.kind === "gauss") {
     const k = nice((amp * Math.sqrt(Math.PI)) / a);
     const q = nice(4 * a * a);
-    return `${k.tex === "1" ? "" : k.tex}e^{-\\frac{${w}^{2}}{${q.tex}}}${shift}`;
+    return `${joinFactor(k.tex === "1" ? "" : k.tex, `e^{-\\frac{${w}^{2}}{${q.tex}}}`)}${shift}`;
   }
   const k = nice(amp / a);
   const fn = t.kind === "sinc" ? "\\operatorname{rect}" : "\\operatorname{tri}";

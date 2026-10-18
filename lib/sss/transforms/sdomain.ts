@@ -15,10 +15,11 @@ import {
   cpow,
   cscale,
   csub,
+  cx,
   ONE,
   ZERO,
 } from "../math/complex";
-import { complexity, nice, niceC } from "../math/nice";
+import { complexity, joinFactor, nice, niceC } from "../math/nice";
 import {
   findRoots,
   padd,
@@ -242,9 +243,7 @@ export function texSMinus(p: C, v = "s"): string {
   const im = -p.im;
   if (Math.abs(re) > 1e-12) terms.push(`${re < 0 ? "-" : "+"}${nice(Math.abs(re)).tex}`);
   if (Math.abs(im) > 1e-12) {
-    const n = nice(Math.abs(im));
-    const j = n.tex === "1" ? "j" : n.den ? `\\frac{${n.num}j}{${n.den}}` : `${n.tex}j`;
-    terms.push(`${im < 0 ? "-" : "+"}${j}`);
+    terms.push(`${im < 0 ? "-" : "+"}${niceC(cx(0, Math.abs(im))).tex}`);
   }
   return terms.join("");
 }
@@ -284,19 +283,19 @@ function texFactors(factors: Factor[], v: string): string {
     .map((f) => {
       const inner = texPoly(f.poly, v);
       const needParens = !single || f.mult > 1;
-      const body = needParens && (f.poly.length > 2 || inner !== v) ? `\\left(${inner}\\right)` : inner;
+      const body = needParens && (f.poly.length > 2 || inner !== v) ? `\\left(${inner}\\right)` : f.mult > 1 && v.length > 1 ? `(${inner})` : inner;
       return f.mult > 1 ? `${body}^{${f.mult}}` : body;
     })
     .join("");
 }
 
 /** e^{-sT} (or e^{-j\omega T}) with a nice T. */
-function texDelay(T: number, v: string): string {
+export function texDelay(T: number, v: string): string {
   if (Math.abs(T) < 1e-12) return "";
   const n = nice(Math.abs(T));
   const sign = T > 0 ? "-" : "";
   const coef = n.tex === "1" ? "" : n.den ? `\\frac{${n.num}}{${n.den}}` : n.tex;
-  if (v === "s") return `e^{${sign}${coef}s}`;
+  if (v === "s") return `e^{${sign}${joinFactor(coef, "s")}}`;
   return `e^{${sign}j${coef}\\omega}`;
 }
 
@@ -326,13 +325,13 @@ function texNumTerm(t: NumTerm, v: string, poles: Root[]): { sign: 1 | -1; body:
           const T = nice(Math.abs(t.delay));
           const arg = T.tex === "1" ? `(${shift})` : `${T.tex}(${shift})`;
           const e = `e^{${t.delay > 0 ? "-" : ""}${arg}}`;
-          return { sign, body: n.tex === "1" ? e : `${n.tex}${e}` };
+          return { sign, body: n.tex === "1" ? e : joinFactor(n.tex, e) };
         }
       }
     }
     const n = nice(a);
     if (!delay) return { sign, body: n.tex };
-    return { sign, body: n.tex === "1" ? delay : `${n.tex}${delay}` };
+    return { sign, body: n.tex === "1" ? delay : joinFactor(n.tex, delay) };
   }
   if (allReal) {
     const terms = p.map((c) => c.re);
@@ -342,13 +341,19 @@ function texNumTerm(t: NumTerm, v: string, poles: Root[]): { sign: 1 | -1; body:
     const inner = texPoly(terms.map((c) => c * sign), v);
     const monomial = terms.filter((c) => Math.abs(c) > 1e-12).length === 1;
     if (!delay) return { sign, body: inner };
-    return { sign, body: monomial ? `${inner}${delay}` : `\\left(${inner}\\right)${delay}` };
+    return { sign, body: monomial ? joinFactor(inner, delay) : `\\left(${inner}\\right)${delay}` };
   }
   // Complex coefficients: write them out.
+  const base = v.length > 1 ? `(${v})` : v;
   const parts = p
-    .map((c, k) => (cisZero(c, 1e-14) ? null : `\\left(${niceC(c).tex}\\right)${k === 0 ? "" : k === 1 ? v : `${v}^{${k}}`}`))
-    .filter(Boolean);
-  return { sign: 1, body: `${parts.length > 1 ? `\\left(${parts.join("+")}\\right)` : parts[0]}${delay}` };
+    .map((c, k) => (cisZero(c, 1e-14) ? null : coefTerm(c, k === 0 ? "1" : k === 1 ? v : `${base}^{${k}}`)))
+    .filter((t) => t !== null)
+    .reverse();
+  if (parts.length === 1) return { sign: parts[0].sign, body: joinFactor(parts[0].body, delay) };
+  if (delay) return { sign: 1, body: joinFactor(`\\left(${joinSigned(parts)}\\right)`, delay) };
+  // No delay: the terms just add, so pull a common minus sign out instead of bracketing.
+  const negative = parts.every((t) => t.sign < 0);
+  return { sign: negative ? -1 : 1, body: joinSigned(negative ? parts.map((t) => ({ ...t, sign: 1 as const })) : parts) };
 }
 
 function joinSigned(terms: { sign: 1 | -1; body: string }[]): string {
@@ -375,7 +380,7 @@ export function texSExpr(X: SExpr, mode: "s" | "jw" = "s"): string {
     return { coef: ONE, delay: g.delay, poly: ptrim(pmul(num, q)) };
   }).filter((t) => t.poly.length > 0);
   const factors = realFactors(poles);
-  const denTex = poles.length === 0 ? "" : factors ? texFactors(factors, v) : `\\left(${texPolyC(den, v)}\\right)`;
+  const denTex = poles.length === 0 ? "" : factors ? texFactors(factors, v) : texRootFactors(poles, v);
 
   if (mode === "jw") {
     const trig = trigNumerator(terms, poles);
@@ -386,13 +391,15 @@ export function texSExpr(X: SExpr, mode: "s" | "jw" = "s"): string {
   return `\\frac{${numTex}}{${denTex}}`;
 }
 
-function texPolyC(p: Poly, v: string): string {
-  if (p.every(realish)) return texPoly(p.map((c) => c.re), v);
-  return p
-    .map((c, k) => (cisZero(c, 1e-14) ? null : `\\left(${niceC(c).tex}\\right)${k === 0 ? "" : k === 1 ? v : `${v}^{${k}}`}`))
-    .filter(Boolean)
-    .reverse()
-    .join("+");
+/** Π(v − p)^m straight from the roots, for complex poles without conjugate partners. */
+function texRootFactors(roots: Root[], v: string): string {
+  const single = roots.length === 1 && roots[0].mult === 1;
+  return roots
+    .map((r) => {
+      const body = single ? texSMinus(r.p, v) : `\\left(${texSMinus(r.p, v)}\\right)`;
+      return r.mult > 1 ? `${body}^{${r.mult}}` : body;
+    })
+    .join("");
 }
 
 /**
@@ -446,7 +453,7 @@ function trigNumerator(terms: NumTerm[], poles: Root[]): { num: string; den: str
       return `${t.tex}\\omega`;
     })();
     const body =
-      o.kind === "1" ? n.tex : o.kind === "cos" ? `${coef}\\cos(${arg})` : o.kind === "sin" ? `${coef}\\sin(${arg})` : `${coef}${texDelay(o.T, "jw")}`;
+      o.kind === "1" ? n.tex : o.kind === "cos" ? `${coef}\\cos(${arg})` : o.kind === "sin" ? `${coef}\\sin(${arg})` : joinFactor(coef, texDelay(o.T, "jw"));
     return { sign, body };
   });
   const num = joinSigned(parts);
@@ -485,7 +492,11 @@ function coefTerm(c: C, what: string): { sign: 1 | -1; body: string } {
     const n = nice(Math.abs(c.re));
     const sign: 1 | -1 = c.re < 0 ? -1 : 1;
     if (what === "1") return { sign, body: n.tex };
-    return { sign, body: n.tex === "1" ? what : `${n.tex}${what}` };
+    return { sign, body: n.tex === "1" ? what : joinFactor(n.tex, what) };
+  }
+  if (Math.abs(c.re) < 1e-12 * cabs(c)) {
+    const n = niceC({ re: 0, im: Math.abs(c.im) }).tex;
+    return { sign: c.im < 0 ? -1 : 1, body: what === "1" ? n : joinFactor(n, what) };
   }
   return { sign: 1, body: `\\left(${niceC(c).tex}\\right)${what === "1" ? "" : what}` };
 }

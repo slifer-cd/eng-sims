@@ -147,7 +147,7 @@ function pattern(theta: number): { tex: string; key: string } {
   if (Math.abs(t - (3 * Math.PI) / 2) < 1e-9) return { tex: "j^{k}", key: "3pi/2" };
   const n = nice(t > Math.PI ? t - twoPi : t);
   const neg = n.sign < 0;
-  const body = n.den ? `\\frac{${n.num === "1" ? "" : n.num}k}{${n.den}}` : `${n.num === "1" ? "" : n.num}k`;
+  const body = n.den ? `\\frac{${joinFactor(n.num === "1" ? "" : n.num, "k")}}{${n.den}}` : joinFactor(n.num === "1" ? "" : n.num, "k");
   return { tex: `e^{${neg ? "" : "-"}j${body}}`, key: n.tex };
 }
 
@@ -168,7 +168,7 @@ function texFactor(lambda: C, w0: number): string {
   if (Math.abs(m.re) < 1e-12) {
     // j(ω₀k − Im λ)
     const r = nice(Math.abs(m.im));
-    return `j\\left(${wt || "1"}k${m.im > 0 ? "+" : "-"}${r.tex}\\right)`.replace("j\\left(1k", "j\\left(k");
+    return `j\\left(${joinFactor(wt, "k")}${m.im > 0 ? "+" : "-"}${r.tex}\\right)`;
   }
   return `\\left(${niceC(m).tex}\\right)+${jk}`;
 }
@@ -262,8 +262,7 @@ function texKPoly(p: Poly, contrib: Poly[] = []): { sign: 1 | -1; body: string; 
       }
       parts.push({ sign: c.re < 0 ? -1 : 1, body: pow && n.tex === "1" ? pow : joinFactor(n.tex, pow) });
     } else if (Math.abs(c.re) < 1e-12 * Math.max(1, cabs(c))) {
-      const n = nice(Math.abs(c.im));
-      parts.push({ sign: c.im < 0 ? -1 : 1, body: `${n.tex === "1" ? "" : n.tex}j${pow}` });
+      parts.push({ sign: c.im < 0 ? -1 : 1, body: joinFactor(niceC(cx(0, Math.abs(c.im))).tex, pow) });
     } else parts.push({ sign: 1, body: `\\left(${niceC(c).tex}\\right)${pow}` });
   }
   if (!parts.length) return null;
@@ -320,7 +319,7 @@ function trigOf(theta: number): { cos: string | null; sin: string | null } {
   if (Math.abs(t) < 1e-9) return { cos: "1", sin: null };
   if (Math.abs(t - Math.PI) < 1e-9) return { cos: "(-1)^{k}", sin: null };
   const n = nice(t);
-  const arg = n.den ? `\\frac{${n.num === "1" ? "" : n.num}k}{${n.den}}` : `${n.num === "1" ? "" : n.num}k`;
+  const arg = n.den ? `\\frac{${joinFactor(n.num === "1" ? "" : n.num, "k")}}{${n.den}}` : joinFactor(n.num === "1" ? "" : n.num, "k");
   return { cos: `\\cos\\left(${arg}\\right)`, sin: `\\sin\\left(${arg}\\right)` };
 }
 
@@ -354,7 +353,7 @@ function texTrig(terms: TrigTerm[]): string {
     const numFactor = nb.num === "1" ? "" : nb.num;
     const denParts = joinFactor(nb.den ?? "", kq);
     const multi = parts.length > 1;
-    const top = numFactor ? (multi ? `${numFactor}\\left(${num}\\right)` : `${numFactor}${num === "1" ? "" : num}`) : num;
+    const top = numFactor ? (multi ? `${numFactor}\\left(${num}\\right)` : joinFactor(numFactor, num === "1" ? "" : num)) : num;
     const sign = nb.sign < 0 ? "-" : "";
     return denParts ? `${sign}\\frac{${top}}{${denParts}}` : `${sign}${multi && numFactor ? top : top}`;
   });

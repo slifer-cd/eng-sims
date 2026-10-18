@@ -41,6 +41,10 @@ describe("nice", () => {
     expect(niceC(cx(0, -1 / Math.PI)).tex).toBe("-\\frac{j}{\\pi}");
     expect(niceC(cx(1, 2)).tex).toBe("1+2j");
     expect(niceC(cx(0, 1)).tex).toBe("j");
+    // j goes before a symbol, so \pi and j never merge into the undefined \pij.
+    expect(niceC(cx(0, -Math.PI)).tex).toBe("-j\\pi");
+    expect(niceC(cx(0, Math.PI / 2)).tex).toBe("\\frac{j\\pi}{2}");
+    expect(niceC(cx(1, 2 * Math.PI)).tex).toBe("1+j2\\pi");
   });
 
   it("rationalizes", () => {

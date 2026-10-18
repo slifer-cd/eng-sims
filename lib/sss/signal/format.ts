@@ -5,7 +5,7 @@
  */
 
 import { type C, cabs, cexp, cmul, cscale, cx } from "../math/complex";
-import { complexity, complexityC, nice, niceC } from "../math/nice";
+import { complexity, complexityC, joinFactor, nice, niceC } from "../math/nice";
 import { epEval, epSub, type ExpPoly, polyCompose } from "./exppoly";
 import { type Impulse, type Piece, type Signal, samePoint } from "./signal";
 
@@ -54,14 +54,7 @@ export function linear(k: number, v: string, T = 0): string {
   return pre === "" ? inner : `${pre}(${inner})`;
 }
 
-/** Juxtapose two LaTeX factors, with a space after a command (\pi t) and a thin space between letters (t\,u). */
-export function joinFactor(a: string, b: string): string {
-  if (!a) return b;
-  if (!b) return a;
-  if (/\\[A-Za-z]+$/.test(a)) return `${a} ${b}`;
-  if (/[A-Za-z]$/.test(a) && /^([A-Za-z]|\\[A-Za-z])/.test(b)) return `${a}\\,${b}`;
-  return `${a}${b}`;
-}
+export { joinFactor };
 
 /** Monomials of a real polynomial in (v − T), highest power first: "t^{2}", "-2(t-1)". */
 function polyTerms(poly: number[], v: string, T: number): Term[] {
@@ -282,8 +275,7 @@ function complexTerms(e: ExpPoly, v: string, discrete: boolean): Term[] {
         const r = cexp(lam);
         ef = `\\left(${niceC(r).tex}\\right)^{${v}}`;
       } else if (Math.abs(lam.re) < 1e-14) {
-        const n = nice(lam.im);
-        ef = `e^{${n.sign < 0 ? "-" : ""}j${n.tex.replace(/^-/, "") === "1" ? "" : n.tex.replace(/^-/, "")}${v}}`;
+        ef = `e^{${lam.im < 0 ? "-" : ""}j${linear(Math.abs(lam.im), v)}}`;
       } else {
         ef = `e^{\\left(${niceC(lam).tex}\\right)${v}}`;
       }
@@ -293,11 +285,12 @@ function complexTerms(e: ExpPoly, v: string, discrete: boolean): Term[] {
       if (cabs(c) < 1e-14) continue;
       const power = k === 0 ? "" : k === 1 ? v : `${v}^{${k}}`;
       const real = isReal(c);
-      const n = real ? nice(Math.abs(c.re)) : niceC(c);
-      const sign: 1 | -1 = real && c.re < 0 ? -1 : 1;
+      const imaginary = !real && Math.abs(c.re) < 1e-12 * cabs(c);
+      const n = real ? nice(Math.abs(c.re)) : imaginary ? niceC(cx(0, Math.abs(c.im))) : niceC(c);
+      const sign: 1 | -1 = (real ? c.re : imaginary ? c.im : 1) < 0 ? -1 : 1;
       const isOne = real && Math.abs(Math.abs(c.re) - 1) < 1e-12;
-      const coef = isOne && (power || ef) ? "" : real ? n.tex : `\\left(${n.tex}\\right)`;
-      terms.push({ sign, body: `${coef}${power}${ef}` || "1" });
+      const coef = isOne && (power || ef) ? "" : real || imaginary ? n.tex : `\\left(${n.tex}\\right)`;
+      terms.push({ sign, body: joinFactor(joinFactor(coef, power), ef) || "1" });
     }
   }
   return terms;

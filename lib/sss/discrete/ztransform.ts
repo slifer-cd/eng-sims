@@ -335,11 +335,12 @@ export function dtft(sig: Signal): DtftResult {
   const live = merged.filter((m) => cabs(m.area) > 1e-12);
   const imp = live.map((i) => {
     const n = realish(i.area) ? nice(i.area.re) : niceC(i.area);
-    const c = n.tex === "1" ? "" : n.tex;
+    const both = !realish(i.area) && Math.abs(i.area.re) > 1e-12;
+    const c = n.tex === "1" ? "" : n.tex === "-1" ? "-" : both ? `\\left(${n.tex}\\right)` : n.tex;
     const arg = Math.abs(i.at) < 1e-12 ? "\\Omega - 2\\pi l" : `\\Omega ${i.at > 0 ? "-" : "+"} ${nice(Math.abs(i.at)).tex} - 2\\pi l`;
     return `${c}\\sum_{l}\\delta(${arg})`;
   });
-  const tex = [texZ(z.terms, "dtft"), ...imp].join(" + ");
+  const tex = [texZ(z.terms, "dtft"), ...imp].reduce((acc, p) => (p.startsWith("-") ? `${acc} ${p}` : `${acc} + ${p}`));
   const steps: Step[] = [
     ...z.steps.slice(0, -1),
     {

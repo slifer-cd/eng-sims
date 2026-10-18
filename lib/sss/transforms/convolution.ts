@@ -9,7 +9,7 @@
  */
 
 import { type C, cisFinite, cmul, cscale, csub, ZERO } from "../math/complex";
-import { nice } from "../math/nice";
+import { joinFactor, nice, niceC } from "../math/nice";
 import { antiderivTerm, binom, epAdd, epCompose, epEval, epIsZero, epLimit, epMul, epNormalize, type ExpPoly } from "../signal/exppoly";
 import { texCases, texExpPoly } from "../signal/format";
 import {
@@ -199,10 +199,10 @@ function intervalTitle(from: number, to: number): string {
 function impulseTex(ip: ImpulsePart): string {
   const name = ip.of === "x" ? "h" : "x";
   const a = ip.impulse.area;
-  const coef = Math.abs(a.im) < 1e-12 ? (Math.abs(a.re - 1) < 1e-12 ? "" : Math.abs(a.re + 1) < 1e-12 ? "-" : nice(a.re).tex) : `(${nice(a.re).tex}+${nice(a.im).tex}j)`;
+  const coef = Math.abs(a.im) < 1e-12 ? (Math.abs(a.re - 1) < 1e-12 ? "" : Math.abs(a.re + 1) < 1e-12 ? "-" : nice(a.re).tex) : Math.abs(a.re) < 1e-12 ? niceC(a).tex : `\\left(${niceC(a).tex}\\right)`;
   const d = ip.impulse.order === 0 ? "" : ip.impulse.order === 1 ? "'" : `^{(${ip.impulse.order})}`;
   const arg = Math.abs(ip.impulse.at) < 1e-12 ? "t" : `t${ip.impulse.at > 0 ? "-" : "+"}${nice(Math.abs(ip.impulse.at)).tex}`;
-  return `${coef}${name}${d}(${arg})`;
+  return joinFactor(coef, `${name}${d}(${arg})`);
 }
 
 function convSteps(x: Signal, h: Signal, y: Signal, intervals: ConvInterval[], impulseParts: ImpulsePart[]): Step[] {

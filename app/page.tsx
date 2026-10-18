@@ -19,11 +19,12 @@ import {
   ACCENT_TEXT,
   Backdrop,
   BUTTON_GLASS,
-  BUTTON_SKY,
+  BUTTON_RED,
   BUTTON_PRIMARY,
   GLASS as glass,
   GLASS_HOVER,
   GRADIENT_TEXT,
+  GRADIENT_TEXT_RED,
   Logo,
 } from "@/components/site/Glass";
 
@@ -173,7 +174,7 @@ export default function Home() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
                 Start building{" "}
-                <span className={GRADIENT_TEXT}>
+                <span className={GRADIENT_TEXT_RED}>
                   in seconds
                 </span>
               </h2>
@@ -181,7 +182,7 @@ export default function Home() {
             </div>
             <Link
               href="/dls"
-              className={`${BUTTON_SKY} shrink-0`}
+              className={`${BUTTON_RED} shrink-0`}
             >
               Open the editor
               <ArrowRight size={17} aria-hidden />

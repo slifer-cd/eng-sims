@@ -105,6 +105,13 @@ describe("fourier", () => {
     close(r.impulses[0].area, cx(0, Math.PI));
     const one = F("1");
     close(one.impulses[0].area, 2 * Math.PI);
+    const sin = F("sin(t)");
+    expect(sin.tex).toBe("j\\pi\\delta(\\omega+1)-j\\pi\\delta(\\omega-1)");
+    // Only impulses: the regular part is exactly 0, not rounding noise (which plots as a random phase).
+    for (const w of [0.3, 0.7, 0.999, 1.5, 4]) expect(sin.at(w)).toEqual(cx(0));
+    // 1/s² at s = jω is 1/(jω)² = −1/ω², not 1/(jω²).
+    expect(r.tex).toBe("\\frac{1}{(j\\omega)^{2}}+j\\pi\\delta'(\\omega)");
+    expect(F("e^(j pi t/2)u(t)").tex).toBe("\\frac{1}{j\\omega-\\frac{j\\pi}{2}}+\\pi\\delta(\\omega-\\frac{\\pi}{2})");
   });
 
   it("has no transform for growing signals", () => {
