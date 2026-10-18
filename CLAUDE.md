@@ -9,6 +9,7 @@ Project guidance is split by topic into `.claude/rules/`, which Claude Code load
 - `overview.md`: the product, commands and stack (always loaded)
 - `simulation.md`: the engine and data model (`lib/sim/`, `lib/model/`)
 - `editor.md`: the editor store, layout, displays and canvas UI (`lib/editor/`, `components/editor/`, `app/dls/`)
+- `sss.md`: the signals & systems simulator (`lib/sss/`, `components/sss/`, `app/sss/`)
 - `storage.md`: IndexedDB blocks and the `localStorage` draft and list layout
 - `styling.md`: theme tokens, site styles and the stale-CSS problem (`app/`, `components/`)
 - `testing.md`: test helpers

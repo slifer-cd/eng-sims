@@ -4,6 +4,8 @@
 
 A browser-based digital logic simulator. Users wire built-in parts together, save designs as custom chips, and nest those chips in other designs. Roadmap milestones: engine → canvas → live sim → custom chips → buses → polish. Storage is browser-only, with no backend yet. In the UI, saved custom chips are called "blocks". The simulator lives at the `/dls` route (digital logic simulator; the folder is `app/dls`).
 
+The second tool is a signals & systems calculator and simulator at `/sss` (`app/sss`, one static route per page): the user types a signal and gets exact formulas with worked steps (transforms, Fourier series, convolution, LTI systems, discrete time) plus animated plots. See `sss.md`.
+
 ## Commands
 
 - `pnpm dev`: dev server at http://localhost:3000 (Turbopack)

@@ -19,11 +19,12 @@ import {
   ACCENT_TEXT,
   Backdrop,
   BUTTON_GLASS,
-  BUTTON_SKY,
+  BUTTON_RED,
   BUTTON_PRIMARY,
   GLASS as glass,
   GLASS_HOVER,
   GRADIENT_TEXT,
+  GRADIENT_TEXT_RED,
   Logo,
 } from "@/components/site/Glass";
 
@@ -41,7 +42,7 @@ interface Tool {
   href?: string;
 }
 
-// Only the logic simulator exists so far; the rest are placeholders for planned tools.
+// Tools without an href are placeholders for planned tools.
 const TOOLS: Tool[] = [
   {
     name: "Digital logic simulator",
@@ -50,7 +51,12 @@ const TOOLS: Tool[] = [
     href: "/dls",
   },
   { name: "Analog circuits", blurb: "Resistors, capacitors and sources, with voltages and currents over time.", icon: Zap },
-  { name: "Signals & systems", blurb: "Generate, filter and inspect waveforms in time and frequency.", icon: Waves },
+  {
+    name: "Signals & systems",
+    blurb: "Transforms, Fourier series and convolution with exact formulas, worked steps and animations.",
+    icon: Waves,
+    href: "/sss",
+  },
   { name: "Engineering calculators", blurb: "Quick conversions and the formulas you look up every week.", icon: Calculator },
 ];
 
@@ -168,7 +174,7 @@ export default function Home() {
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">
                 Start building{" "}
-                <span className={GRADIENT_TEXT}>
+                <span className={GRADIENT_TEXT_RED}>
                   in seconds
                 </span>
               </h2>
@@ -176,7 +182,7 @@ export default function Home() {
             </div>
             <Link
               href="/dls"
-              className={`${BUTTON_SKY} shrink-0`}
+              className={`${BUTTON_RED} shrink-0`}
             >
               Open the editor
               <ArrowRight size={17} aria-hidden />
