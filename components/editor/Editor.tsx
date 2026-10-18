@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { type Draft, restoreSession } from "@/lib/editor/draft";
 import { useSim } from "@/lib/editor/simStore";
 import { parsePaletteGroups } from "@/lib/editor/palette";
 import { dialogOpen, useEditor } from "@/lib/editor/store";
-import type { Circuit } from "@/lib/model/types";
 import { indexedDbRepository } from "@/lib/storage/indexedDb";
 import { PALETTE_KEY, SCRATCH_KEY } from "@/lib/storage/localKeys";
 import { newDesign, quickSave } from "./actions";
@@ -14,25 +14,6 @@ import { Palette } from "./Palette";
 import { PaletteDialog } from "./PaletteDialog";
 import { SaveDialog } from "./SaveDialog";
 import { Toolbar } from "./Toolbar";
-
-/*
- * The design on the canvas is autosaved as a draft in localStorage, which can be written
- * synchronously when the page goes away. Blocks are saved explicitly, to IndexedDB.
- */
-
-interface Draft {
-  circuit: Circuit;
-  /** The block the draft is an edit of. */
-  chipId: string | null;
-}
-
-function readDraft(): Draft | null {
-  const raw = JSON.parse(localStorage.getItem(SCRATCH_KEY) ?? "null");
-  // Older drafts are a bare circuit.
-  const draft: Draft | null = raw && "circuit" in raw ? raw : raw && { circuit: raw, chipId: null };
-  const c = draft?.circuit;
-  return c && Array.isArray(c.components) && Array.isArray(c.wires) ? draft : null;
-}
 
 /** Load the left bar's layout and save it whenever it changes. */
 function usePaletteLayout() {
@@ -54,20 +35,10 @@ function usePaletteLayout() {
   }, []);
 }
 
-/** Restore the draft, then load saved blocks; restoring first lets the store tell whether the draft is unsaved. */
+/** Restore the session once, then autosave the draft whenever the design changes. */
 function usePersistence() {
   useEffect(() => {
-    try {
-      const draft = readDraft();
-      if (draft) {
-        const { chipId, circuit } = draft;
-        useEditor.getState().load(circuit, { chipId, saved: !chipId && circuit.components.length === 0 });
-        useEditor.getState().fitView();
-      }
-    } catch {
-      // Unreadable or blocked storage: start empty.
-    }
-    void useEditor.getState().attachStorage(indexedDbRepository());
+    restoreSession(indexedDbRepository);
 
     let timer: ReturnType<typeof setTimeout> | undefined;
     const save = () => {

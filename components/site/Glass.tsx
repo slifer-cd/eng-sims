@@ -20,7 +20,7 @@ export const GLASS =
 export const ACCENT_TEXT = "text-blue-700 dark:text-sky-400";
 /** Gradient text for headline highlights. */
 export const GRADIENT_TEXT =
-  "bg-linear-to-r from-blue-700 via-blue-500 to-sky-400 bg-clip-text text-transparent dark:from-blue-400 dark:via-sky-400 dark:to-sky-300";
+  "bg-linear-to-r from-blue-700 via-blue-600 to-sky-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-sky-400 dark:to-sky-300";
 
 const BUTTON = "flex items-center justify-center gap-2 rounded-full px-5 py-2.5 font-medium";
 /** Main action: deep blue into blue. */
@@ -29,7 +29,9 @@ export const BUTTON_PRIMARY = `${BUTTON} bg-linear-to-r from-blue-700 to-blue-50
 export const BUTTON_SKY = `${BUTTON} bg-linear-to-r from-sky-300 to-blue-400 text-blue-950 shadow-lg shadow-sky-500/30 hover:brightness-105`;
 /** Errors only. */
 export const BUTTON_RED = `${BUTTON} bg-linear-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/25 hover:brightness-110`;
-export const BUTTON_GLASS = `${BUTTON} ${GLASS} rounded-full hover:from-white/80 dark:hover:from-white/[0.2]`;
+/** Hover state for a glass panel that is a link or button: the fill brightens. */
+export const GLASS_HOVER = "hover:from-white/80 dark:hover:from-white/[0.2]";
+export const BUTTON_GLASS = `${BUTTON} ${GLASS} rounded-full ${GLASS_HOVER}`;
 
 /**
  * Colour fields behind the glass, spread down the page so every panel has colour behind

@@ -22,6 +22,7 @@ import {
   BUTTON_SKY,
   BUTTON_PRIMARY,
   GLASS as glass,
+  GLASS_HOVER,
   GRADIENT_TEXT,
   Logo,
 } from "@/components/site/Glass";
@@ -85,7 +86,7 @@ export default function Home() {
         <Logo />
         <Link
           href="/dls"
-          className={`${glass} flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium hover:from-white/80 dark:hover:from-white/[0.2]`}
+          className={`${glass} flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium ${GLASS_HOVER}`}
         >
           Open simulator
           <ArrowRight size={15} aria-hidden />
@@ -237,7 +238,7 @@ function ToolCard({ tool }: { tool: Tool }) {
   return tool.href ? (
     <Link
       href={tool.href}
-      className={`${glass} group block p-5 transition hover:-translate-y-0.5 hover:from-white/80 dark:hover:from-white/[0.2]`}
+      className={`${glass} group block p-5 transition hover:-translate-y-0.5 ${GLASS_HOVER}`}
     >
       {body}
     </Link>

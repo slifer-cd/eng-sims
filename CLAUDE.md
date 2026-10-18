@@ -15,4 +15,4 @@ Project guidance is split by topic into `.claude/rules/`, which Claude Code load
 
 Files with `paths:` frontmatter load only when Claude works on matching files.
 
-Security-testing skills vendored under `.agents/skills/` are described in `.claude/rules/security-skills.md`.
+Safety rules for the vendored Strix security-testing skills are in `.claude/rules/security-skills.md`.

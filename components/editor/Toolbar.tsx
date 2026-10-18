@@ -45,7 +45,7 @@ export function Toolbar() {
   return (
     <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel bg-linear-to-r from-accent/15 via-panel to-panel px-3">
       <h1 className="mr-4 text-sm font-semibold">
-        {/* No unsaved-work prompt: the canvas draft is autosaved when the editor unmounts. */}
+        {/* No unsaved-work prompt: the canvas draft is autosaved when the editor is hidden or unmounts. */}
         <Link
           href="/"
           title="Back to the home page"
