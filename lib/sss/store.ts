@@ -30,6 +30,8 @@ export interface SssInputs {
   system: { H: ExprInput; input: "x" | "impulse" | "step" | "sine"; w0: number };
   dx: SeqInput;
   dh: SeqInput;
+  /** X(z) for the inverse Z-transform. */
+  zinv: ExprInput;
 }
 
 export const DEFAULT_INPUTS: SssInputs = {
@@ -41,6 +43,7 @@ export const DEFAULT_INPUTS: SssInputs = {
   system: { H: { text: "1/(s^2 + 0.6s + 1)", params: {} }, input: "step", w0: 1 },
   dx: { mode: "formula", text: "0.8^n u(n)", values: "1, 2, 3", start: 0, params: {} },
   dh: { mode: "formula", text: "u(n) - u(n - 4)", values: "1, 1, 1, 1", start: 0, params: {} },
+  zinv: { text: "z/((z - 0.5)(z - 0.8))", params: {} },
 };
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -107,6 +110,7 @@ export function loadInputs(raw: string | null): SssInputs {
     },
     dx: seq(i.dx, d.dx),
     dh: seq(i.dh, d.dh),
+    zinv: expr(i.zinv, d.zinv),
   };
 }
 

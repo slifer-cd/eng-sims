@@ -1,6 +1,21 @@
 "use client";
 
-import { Activity, AudioWaveform, BookOpen, Combine, Cpu, type LucideIcon, Sigma, Waves, Workflow, X } from "lucide-react";
+import {
+  Activity,
+  AudioWaveform,
+  BookOpen,
+  ChartNoAxesColumn,
+  Combine,
+  Cpu,
+  Grid2x2,
+  type LucideIcon,
+  Orbit,
+  Sigma,
+  Spline,
+  Waves,
+  Workflow,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { type ReactNode, useRef } from "react";
@@ -25,6 +40,15 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { href: "/sss/series", label: "Fourier series", icon: Waves },
       { href: "/sss/convolution", label: "Convolution", icon: Combine },
       { href: "/sss/system", label: "LTI system", icon: Workflow },
+    ],
+  },
+  {
+    group: "Discrete time",
+    items: [
+      { href: "/sss/discrete", label: "Sequence", icon: ChartNoAxesColumn },
+      { href: "/sss/discrete/z", label: "Z-transform", icon: Orbit },
+      { href: "/sss/discrete/dtft", label: "DTFT", icon: Spline },
+      { href: "/sss/discrete/convolution", label: "Convolution", icon: Grid2x2 },
     ],
   },
 ];
