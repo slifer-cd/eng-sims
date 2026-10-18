@@ -41,7 +41,7 @@ interface Tool {
   href?: string;
 }
 
-// Only the logic simulator exists so far; the rest are placeholders for planned tools.
+// Tools without an href are placeholders for planned tools.
 const TOOLS: Tool[] = [
   {
     name: "Digital logic simulator",
@@ -50,7 +50,12 @@ const TOOLS: Tool[] = [
     href: "/dls",
   },
   { name: "Analog circuits", blurb: "Resistors, capacitors and sources, with voltages and currents over time.", icon: Zap },
-  { name: "Signals & systems", blurb: "Generate, filter and inspect waveforms in time and frequency.", icon: Waves },
+  {
+    name: "Signals & systems",
+    blurb: "Transforms, Fourier series and convolution with exact formulas, worked steps and animations.",
+    icon: Waves,
+    href: "/sss",
+  },
   { name: "Engineering calculators", blurb: "Quick conversions and the formulas you look up every week.", icon: Calculator },
 ];
 
