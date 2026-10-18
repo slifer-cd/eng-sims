@@ -117,6 +117,8 @@ export interface PlotProps {
   xPi?: boolean;
   /** Label the y axis in multiples of π. */
   yPi?: boolean;
+  /** Custom x tick labels (e.g. decades on a log axis). */
+  xTickFormat?: (v: number) => string;
   /** Same scale on both axes (complex and s-planes): the ranges grow to fit. */
   equal?: boolean;
   /** Values under the cursor, for the hover box. */
@@ -392,7 +394,7 @@ function drawPlot(
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   xs.forEach((v, i) => {
-    const label = xTicks ? xTicks[i].label : formatTick(v, xStep);
+    const label = xTicks ? xTicks[i].label : p.xTickFormat ? p.xTickFormat(v) : formatTick(v, xStep);
     ctx.fillText(label, px(v), top + height + 6);
   });
   ctx.textAlign = "right";
