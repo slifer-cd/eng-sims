@@ -3,7 +3,7 @@
 import { Eraser, RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { BUTTON_GLASS, BUTTON_RED, StatusPage } from "@/components/site/Glass";
+import { BUTTON_OUTLINE, BUTTON_RED, StatusPage } from "@/components/site/Bench";
 import { SCRATCH_KEY } from "@/lib/storage/localKeys";
 
 /**
@@ -36,10 +36,10 @@ export default function SimulatorError({ error, retry }: { error: Error & { dige
       tone="red"
       actions={
         <>
-          <Link href="/" className={BUTTON_GLASS}>
+          <Link href="/" className={BUTTON_OUTLINE}>
             Back home
           </Link>
-          <button type="button" onClick={clearDraft} className={BUTTON_GLASS}>
+          <button type="button" onClick={clearDraft} className={BUTTON_OUTLINE}>
             <Eraser size={16} aria-hidden />
             Clear canvas draft
           </button>

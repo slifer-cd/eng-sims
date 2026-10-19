@@ -3,7 +3,7 @@
 import { Eraser, RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { BUTTON_GLASS, BUTTON_RED } from "@/components/site/Glass";
+import { BUTTON_OUTLINE, BUTTON_RED } from "@/components/site/Bench";
 import { SSS_KEY } from "@/lib/storage/localKeys";
 
 /**
@@ -29,7 +29,7 @@ export default function SimulatorError({ error, retry }: { error: Error & { dige
   // Shown inside the simulator's frame, so the tool list stays usable.
   return (
     <div className="mx-auto mt-10 max-w-lg rounded-xl border border-line bg-panel p-6 text-center sm:p-8">
-      <span className="mx-auto grid size-12 place-items-center rounded-xl bg-linear-to-br from-red-400 to-red-600 text-white shadow-lg shadow-red-500/25">
+      <span className="mx-auto grid size-12 place-items-center rounded-md border border-red-600/30 bg-red-600/10 text-red-600 dark:text-red-400">
         <TriangleAlert size={24} aria-hidden />
       </span>
       <h1 className="mt-5 text-2xl font-semibold tracking-tight text-balance">This page crashed</h1>
@@ -39,10 +39,10 @@ export default function SimulatorError({ error, retry }: { error: Error & { dige
       </p>
       {error.message && <p className="mt-3 font-mono text-xs break-words text-muted">{error.message}</p>}
       <div className="mt-6 flex flex-wrap justify-center gap-3">
-        <Link href="/" className={BUTTON_GLASS}>
+        <Link href="/" className={BUTTON_OUTLINE}>
           Back home
         </Link>
-        <button type="button" onClick={resetInputs} className={BUTTON_GLASS}>
+        <button type="button" onClick={resetInputs} className={BUTTON_OUTLINE}>
           <Eraser size={16} aria-hidden />
           Reset inputs
         </button>

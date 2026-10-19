@@ -2,7 +2,7 @@
 
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import { useEffect } from "react";
-import { BUTTON_GLASS, BUTTON_RED, StatusPage } from "@/components/site/Glass";
+import { BUTTON_OUTLINE, BUTTON_RED, StatusPage } from "@/components/site/Bench";
 // This page replaces the root layout, so it brings its own styles.
 import "./globals.css";
 
@@ -25,7 +25,7 @@ export default function GlobalError({ error, retry }: { error: Error & { digest?
             <>
               {/* A full page load rather than <Link>: the app's router may be what failed. */}
               {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-              <a href="/" className={BUTTON_GLASS}>
+              <a href="/" className={BUTTON_OUTLINE}>
                 Back home
               </a>
               <button type="button" onClick={() => retry()} className={BUTTON_RED}>

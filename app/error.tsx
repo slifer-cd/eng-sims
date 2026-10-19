@@ -3,7 +3,7 @@
 import { RotateCcw, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
-import { BUTTON_GLASS, BUTTON_RED, StatusPage } from "@/components/site/Glass";
+import { BUTTON_OUTLINE, BUTTON_RED, StatusPage } from "@/components/site/Bench";
 
 /** Shown when a page throws while rendering. The root layout stays in place. */
 export default function Error({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
@@ -19,7 +19,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
       tone="red"
       actions={
         <>
-          <Link href="/" className={BUTTON_GLASS}>
+          <Link href="/" className={BUTTON_OUTLINE}>
             Back home
           </Link>
           <button type="button" onClick={() => retry()} className={BUTTON_RED}>

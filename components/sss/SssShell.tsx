@@ -2,11 +2,11 @@
 
 import {
   Activity,
+  AudioLines,
   AudioWaveform,
   BookOpen,
   ChartNoAxesColumn,
   Combine,
-  Cpu,
   Grid2x2,
   type LucideIcon,
   Orbit,
@@ -172,7 +172,7 @@ export function SssShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-40 flex h-11 shrink-0 items-center gap-1 border-b border-line bg-panel bg-linear-to-r from-accent/15 via-panel to-panel px-3">
         <Link href="/" title="Back to the home page" className="-mx-1.5 flex items-center gap-2 rounded-md px-1.5 py-1 text-sm font-semibold hover:bg-hover">
           <span className="grid size-6 place-items-center rounded-md bg-accent text-white shadow-sm">
-            <Cpu size={14} aria-hidden />
+            <AudioLines size={14} aria-hidden />
           </span>
           Eng Sims
         </Link>
