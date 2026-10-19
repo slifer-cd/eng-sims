@@ -152,3 +152,86 @@ body {
     scroll-behavior: smooth;
   }
 }
+
+/*
+ * The home page backdrop (components/home/Backdrop.tsx). Each element sets its own
+ * --duration and --delay (negative, so the page opens mid-motion); --peak is a formula's
+ * opacity at full brightness and --period how far a trace scrolls before it repeats.
+ */
+@keyframes backdrop-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  30%,
+  70% {
+    opacity: var(--peak);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-1.25rem);
+  }
+}
+/* A pulse crosses in the first two thirds of its cycle and rests, unseen, for the rest. */
+@keyframes backdrop-run-x {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  8%,
+  58% {
+    opacity: 1;
+  }
+  66%,
+  to {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+@keyframes backdrop-run-y {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  8%,
+  58% {
+    opacity: 1;
+  }
+  66%,
+  to {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes backdrop-scroll {
+  to {
+    transform: translateX(calc(-1 * var(--period)));
+  }
+}
+.backdrop-rise {
+  --peak: 0.7;
+  opacity: var(--peak);
+  animation: backdrop-rise var(--duration) ease-in-out var(--delay) infinite;
+}
+.backdrop-run-x {
+  opacity: 0;
+  animation: backdrop-run-x var(--duration) ease-in-out var(--delay) infinite;
+}
+.backdrop-run-y {
+  opacity: 0;
+  animation: backdrop-run-y var(--duration) ease-in-out var(--delay) infinite;
+}
+.backdrop-scroll {
+  animation: backdrop-scroll var(--duration) linear infinite;
+}
+/* Formulas and traces hold still. Pulses only make sense moving, so they go. */
+@media (prefers-reduced-motion: reduce) {
+  .backdrop-rise,
+  .backdrop-scroll {
+    animation: none;
+  }
+  .backdrop-run-x,
+  .backdrop-run-y {
+    display: none;
+  }
+}

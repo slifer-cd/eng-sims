@@ -1,6 +1,9 @@
+import "katex/dist/katex.min.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { AnalogSketch } from "@/components/home/AnalogSketch";
+import { Backdrop } from "@/components/home/Backdrop";
 import { BitsPreview } from "@/components/home/BitsPreview";
 import { FourierPreview } from "@/components/home/FourierPreview";
 import { LogicPreview } from "@/components/home/LogicPreview";
@@ -14,13 +17,18 @@ export const metadata: Metadata = {
 
 /** Tools that are planned but not built yet. */
 const PLANNED = [
-  { name: "Analog circuits", blurb: "Resistors, capacitors and sources, with voltages and currents over time." },
+  {
+    name: "Analog circuits",
+    blurb: "Resistors, capacitors and sources, with voltages and currents over time.",
+    sketch: <AnalogSketch />,
+  },
 ];
 
 export default function Home() {
   return (
     <div className="relative isolate flex min-h-full flex-1 flex-col overflow-hidden">
       <GraphPaper />
+      <Backdrop />
 
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 pt-5 sm:px-6">
         <Logo />
@@ -42,7 +50,7 @@ export default function Home() {
           </p>
         </section>
 
-        <section aria-label="Tools" className="grid gap-4 lg:grid-cols-2">
+        <section aria-label="Tools" className="mb-16 grid gap-4 lg:grid-cols-2">
           <ToolPanel
             name="Digital logic simulator"
             route="/dls"
@@ -67,25 +75,11 @@ export default function Home() {
             action="Open bits & logic"
             preview={<BitsPreview />}
           />
+          {PLANNED.map((tool) => (
+            <PlannedPanel key={tool.name} {...tool} />
+          ))}
         </section>
 
-        <section aria-labelledby="planned" className="mt-4 mb-16">
-          <h2 id="planned" className="sr-only">
-            Planned tools
-          </h2>
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {PLANNED.map((tool) => (
-              // Dashed: drawn in, not built yet.
-              <li key={tool.name} className="rounded-lg border border-dashed border-grid px-5 py-4">
-                <p className="flex items-baseline justify-between gap-3">
-                  <span className="font-medium">{tool.name}</span>
-                  <span className="text-xs text-muted">Planned</span>
-                </p>
-                <p className="mt-1 text-sm text-muted">{tool.blurb}</p>
-              </li>
-            ))}
-          </ul>
-        </section>
       </main>
 
       <footer className="border-t border-line">
@@ -102,6 +96,22 @@ function NavLink({ href, children }: { href: string; children: ReactNode }) {
     <Link href={href} className="rounded-md px-3 py-1.5 font-medium text-muted transition-colors hover:bg-hover hover:text-foreground">
       {children}
     </Link>
+  );
+}
+
+/** A tool that is drawn in but not built yet: dashed, with a sketch in place of a live preview. */
+function PlannedPanel(props: { name: string; blurb: string; sketch: ReactNode }) {
+  return (
+    <article className="flex flex-col rounded-lg border border-dashed border-grid">
+      <header className="flex items-baseline justify-between gap-3 border-b border-dashed border-grid px-5 py-3">
+        <h2 className="font-semibold text-muted">{props.name}</h2>
+        <span className="text-xs text-muted">Planned</span>
+      </header>
+      <div className="grid flex-1 place-items-center px-5 py-6">
+        <div className="w-full max-w-md opacity-70">{props.sketch}</div>
+      </div>
+      <p className="px-5 pt-1 pb-5 text-pretty text-muted">{props.blurb}</p>
+    </article>
   );
 }
 
