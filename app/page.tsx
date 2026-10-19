@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { BitsPreview } from "@/components/home/BitsPreview";
 import { FourierPreview } from "@/components/home/FourierPreview";
 import { LogicPreview } from "@/components/home/LogicPreview";
 import { BUTTON_PRIMARY, GraphPaper, Logo, PANEL } from "@/components/site/Bench";
@@ -8,13 +9,12 @@ import { BUTTON_PRIMARY, GraphPaper, Logo, PANEL } from "@/components/site/Bench
 export const metadata: Metadata = {
   title: "Eng Sims · Simulators for engineers",
   description:
-    "A digital logic simulator and a signals & systems calculator that show their work. Free, in your browser, no account.",
+    "A digital logic simulator, a signals & systems calculator and bits & logic tools that show their work. Free, in your browser, no account.",
 };
 
 /** Tools that are planned but not built yet. */
 const PLANNED = [
   { name: "Analog circuits", blurb: "Resistors, capacitors and sources, with voltages and currents over time." },
-  { name: "Engineering calculators", blurb: "Unit conversions and the formulas you look up every week." },
 ];
 
 export default function Home() {
@@ -27,6 +27,7 @@ export default function Home() {
         <nav aria-label="Main" className="flex gap-1 text-sm">
           <NavLink href="/dls">Logic</NavLink>
           <NavLink href="/sss">Signals</NavLink>
+          <NavLink href="/calc">Bits &amp; Logic</NavLink>
         </nav>
       </header>
 
@@ -57,6 +58,14 @@ export default function Home() {
             facts={["Fourier, Laplace and z-transforms", "LTI systems", "Discrete time"]}
             action="Open signals & systems"
             preview={<FourierPreview />}
+          />
+          <ToolPanel
+            name="Bits & Logic"
+            route="/calc"
+            blurb="Number bases, two's complement and floating point bits, truth tables and K-maps, each with the working."
+            facts={["Bases and IEEE-754", "Truth tables", "K-maps and Quine–McCluskey"]}
+            action="Open bits & logic"
+            preview={<BitsPreview />}
           />
         </section>
 
