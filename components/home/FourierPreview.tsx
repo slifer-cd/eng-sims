@@ -5,33 +5,37 @@ import { squareWaveIdealPath, squareWavePath } from "@/lib/site/previews";
 
 const BOX = { width: 360, height: 170, periods: 2, samples: 360 };
 const MAX_TERMS = 20;
-/** Where the opening animation stops: enough harmonics for the wave to look square. */
-const SETTLE_TERMS = 8;
-const GROW_MS = 3200;
+/** The sweep runs between the fundamental and this many harmonics, where the wave looks square. */
+const SWEEP_TERMS = 10;
+/** One full sweep, up and back down. */
+const SWEEP_MS = 9000;
 
 /**
- * A square wave built from its Fourier series. On load the sum grows from the fundamental,
- * one odd harmonic fading in at a time, then the slider hands control to the visitor.
+ * A square wave built from its Fourier series. On load the sum keeps sweeping up from the
+ * fundamental, one odd harmonic fading in at a time, and back down, until the visitor moves
+ * the slider.
  */
 export function FourierPreview() {
   const [terms, setTerms] = useState(1);
   const frame = useRef(0);
   // Survives the effect being cleaned up (Strict Mode, or the page hidden under
-  // cacheComponents), so a finished or overridden animation doesn't replay over the slider.
-  const grown = useRef(false);
+  // cacheComponents), so an overridden sweep doesn't replay over the slider.
+  const stopped = useRef(false);
   const sliderId = useId();
 
   useEffect(() => {
-    if (grown.current) return;
-    // With reduced motion the first frame jumps straight to the end.
-    const duration = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : GROW_MS;
+    if (stopped.current) return;
+    // With reduced motion the first frame jumps to a settled wave and stays there.
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      frame.current = requestAnimationFrame(() => setTerms(SWEEP_TERMS));
+      return () => cancelAnimationFrame(frame.current);
+    }
     const start = performance.now();
     const step = (now: number) => {
-      const p = duration ? Math.min(1, (now - start) / duration) : 1;
-      const eased = 1 - (1 - p) ** 3;
-      setTerms(1 + eased * (SETTLE_TERMS - 1));
-      if (p < 1) frame.current = requestAnimationFrame(step);
-      else grown.current = true;
+      // Cosine ease: lingers at the square end and at the bare sine.
+      const p = (1 - Math.cos((2 * Math.PI * (now - start)) / SWEEP_MS)) / 2;
+      setTerms(1 + p * (SWEEP_TERMS - 1));
+      frame.current = requestAnimationFrame(step);
     };
     frame.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frame.current);
@@ -61,7 +65,7 @@ export function FourierPreview() {
             value={Math.round(terms)}
             onChange={(e) => {
               cancelAnimationFrame(frame.current);
-              grown.current = true;
+              stopped.current = true;
               setTerms(Number(e.target.value));
             }}
             className="w-28 accent-accent"

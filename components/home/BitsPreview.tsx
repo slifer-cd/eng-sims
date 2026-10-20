@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useAutoplay } from "./useAutoplay";
 
-/** One byte from the calculators, with bits the visitor can flip. */
+/** One byte from the calculators. It flips a random bit now and then until the visitor flips one. */
 export function BitsPreview() {
   const [byte, setByte] = useState(0b1101_0110);
+  const stop = useAutoplay(() => {
+    setByte((b) => b ^ (1 << Math.floor(Math.random() * 8)));
+  }, 1400);
   const signed = byte & 0x80 ? byte - 256 : byte;
   return (
     <div>
@@ -16,7 +20,10 @@ export function BitsPreview() {
             <button
               key={bit}
               type="button"
-              onClick={() => setByte((b) => b ^ (1 << bit))}
+              onClick={() => {
+                stop();
+                setByte((b) => b ^ (1 << bit));
+              }}
               aria-label={`Bit ${bit}, ${on}`}
               aria-pressed={!!on}
               className={`grid h-12 w-9 place-items-center rounded-md border font-mono text-lg transition-colors ${
