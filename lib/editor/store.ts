@@ -4,7 +4,7 @@ import type { ChipDef, Circuit, Endpoint, Point, Props } from "../model/types";
 import { type ChipLibrary, chipLibrary } from "../sim/compile";
 import { type ChipRepository, memoryRepository } from "../storage/repository";
 import { type ChipMeta, chipUsers, designProblems, makeChipDef, nameProblem, sortChips } from "./chips";
-import { GRID } from "./layout";
+import { GRID, describe } from "./layout";
 import {
   type Clip,
   copyItems,
@@ -310,7 +310,7 @@ export const useEditor = create<EditorState>()(
         if (!comp) return;
         if (patch.label !== undefined) comp.label = patch.label || undefined;
         if (patch.props) Object.assign(comp.props, patch.props);
-        pruneWires(c, library);
+        pruneWires(c, (x) => describe(x, library)?.pins.map((p) => p.id));
       });
     },
 

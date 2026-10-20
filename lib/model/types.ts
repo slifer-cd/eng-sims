@@ -42,6 +42,8 @@ export interface ComponentInst {
   x: number;
   y: number;
   rotation: Rotation;
+  /** Mirrored across the part's own x-axis before rotating. Only the analog simulator uses it. */
+  flip?: boolean;
   label?: string;
   props: Props;
 }

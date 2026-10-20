@@ -1,7 +1,5 @@
 import { nanoid } from "nanoid";
 import type { Circuit, ComponentInst, Endpoint, Rotation, Wire } from "../model/types";
-import type { ChipLibrary } from "../sim/compile";
-import { describe } from "./layout";
 
 /*
  * Pure edits on a Circuit. Mutating functions are written for immer drafts.
@@ -30,13 +28,13 @@ export function removeItems(c: Circuit, compIds: Iterable<string>, wireIds: Iter
   removeOrphanJunctions(c, wires);
 }
 
-/** Delete wires attached to components or pins that no longer exist, e.g. after a gate loses an input. */
-export function pruneWires(c: Circuit, library?: ChipLibrary) {
+/**
+ * Delete wires attached to components or pins that no longer exist, e.g. after a gate loses
+ * an input. `pinIdsOf` lists a component's current pins (none if it is unknown).
+ */
+export function pruneWires(c: Circuit, pinIdsOf: (comp: ComponentInst) => Iterable<string> | undefined) {
   const pinsByComp = new Map<string, Set<string>>();
-  for (const comp of c.components) {
-    const look = describe(comp, library);
-    pinsByComp.set(comp.id, new Set(look?.pins.map((p) => p.id)));
-  }
+  for (const comp of c.components) pinsByComp.set(comp.id, new Set(pinIdsOf(comp)));
   const valid = (e: Endpoint) => e.kind === "wire" || !!pinsByComp.get(e.compId)?.has(e.pinId);
   const before = c.wires.length;
   c.wires = c.wires.filter((w) => valid(w.a) && valid(w.b));

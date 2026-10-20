@@ -46,8 +46,19 @@ describe("ops", () => {
     b.wire([a, "out"], [g, "in2"]);
     const c = structuredClone(b.circuit);
     c.components[1].props.inputs = 2;
-    pruneWires(c);
+    pruneWires(c, (comp) => describeChip(comp)?.pins.map((p) => p.id));
     expect(c.wires).toHaveLength(0);
+  });
+
+  it("prunes against the pins the caller says each component has", () => {
+    const b = new CircuitBuilder();
+    const r1 = b.add("resistor"), r2 = b.add("resistor");
+    b.wire([r1, "b"], [r2, "a"]);
+    const w = b.wire([r2, "b"], [r1, "a"]);
+    b.junction(w, [r2, "x"]);
+    const c = structuredClone(b.circuit);
+    pruneWires(c, () => ["a", "b"]);
+    expect(c.wires.map((x) => x.id)).toEqual(["w0", "w1"]);
   });
 
   it("copy/paste duplicates the connected circuit with fresh ids", () => {

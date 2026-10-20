@@ -1,4 +1,5 @@
 import type { ChipDef, Circuit, Endpoint, Props } from "../model/types";
+import { UnionFind } from "../model/unionFind";
 import { builtinProps, getBuiltin } from "./builtins";
 
 /** Looks up custom chips by id. Built-ins are resolved separately. */
@@ -48,33 +49,6 @@ export interface Netlist {
 
 export const pinKey = (path: string, compId: string, pinId: string) => `${path}${compId}.${pinId}`;
 export const wireKey = (path: string, wireId: string) => `${path}~${wireId}`;
-
-class UnionFind {
-  private parent = new Map<string, string>();
-  add(k: string) {
-    if (!this.parent.has(k)) this.parent.set(k, k);
-  }
-  has(k: string) {
-    return this.parent.has(k);
-  }
-  find(k: string): string {
-    let r = k;
-    while (this.parent.get(r) !== r) r = this.parent.get(r)!;
-    // Path compression.
-    while (k !== r) {
-      const next = this.parent.get(k)!;
-      this.parent.set(k, r);
-      k = next;
-    }
-    return r;
-  }
-  union(a: string, b: string) {
-    this.parent.set(this.find(a), this.find(b));
-  }
-  keys() {
-    return this.parent.keys();
-  }
-}
 
 interface PendingPrim {
   specId: string;
