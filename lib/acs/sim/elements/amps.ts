@@ -5,8 +5,10 @@ import { type CreateCtx, type Element, GROUND, type Stamper, vAt } from "../elem
  * ground following a smooth limiter, out = mid + half·tanh(k·(vd − threshold)/half), with
  * vd = V(+) − V(−). Inputs draw no current.
  *
- * Newton's method stamps the true limiter value but floors its slope, so an iteration that
- * lands deep in saturation (where the slope is ~0) can still find its way back.
+ * Newton's method stamps the true limiter value and slope, which settles in an iteration or
+ * two, saturated or not. Only when that fails (an output stuck on the wrong rail, where the
+ * limiter is flat, bounces between the rails) does a damped retry floor the slope so the
+ * iterations walk back to the linear region.
  */
 
 interface Limiter {
@@ -14,7 +16,7 @@ interface Limiter {
   hi: number;
   /** Slope at the threshold (the open-loop gain). */
   gain: number;
-  /** Floor for the slope used in the Newton stamp, as a fraction of `gain`. */
+  /** Floor for the slope used in a damped Newton stamp, as a fraction of `gain`. */
   minSlope: number;
 }
 
@@ -40,10 +42,10 @@ function amplifier(c: CreateCtx, lim: Limiter, threshold: () => number, onAccept
       s.add(out, k, 1);
       s.add(k, out, 1);
     },
-    stampIter(s, x) {
+    stampIter(s, x, ctx) {
       const v0 = vd(x);
       const { v, d } = f(v0);
-      const slope = Math.max(d, lim.gain * lim.minSlope);
+      const slope = ctx.damped ? Math.max(d, lim.gain * lim.minSlope) : d;
       s.add(k, plus, -slope);
       s.add(k, minus, slope);
       // out = f(v0) + slope·(V(+) − V(−) − threshold − v0)

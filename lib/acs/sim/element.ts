@@ -86,6 +86,11 @@ export interface StepCtx {
   t: number;
   dt: number;
   method: "trap" | "be";
+  /**
+   * Newton's method failed with exact slopes: parts may stamp gentler, steeper-than-true
+   * slopes (still with their true values) to find their way back from a flat region.
+   */
+  damped?: boolean;
 }
 
 /** Values shown for a part. Currents follow the passive sign convention: into the first terminal. */

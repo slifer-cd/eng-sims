@@ -41,6 +41,8 @@ export class Engine {
   time = 0;
   /** Why the circuit can't be simulated, if it can't. */
   error: Problem | null = null;
+  /** Newton iterations so far, a measure of how hard the circuit is to solve. */
+  iterations = 0;
 
   private x: Float64Array;
   private readonly lu: LU;
@@ -204,16 +206,21 @@ export class Engine {
     if (!this.nonlinear.length) return this.lu.solve(b);
 
     for (const e of this.nonlinear) e.beginSolve?.();
-    const x = this.newton(this.x, b, ctx, 0);
+    const exact = this.newton(this.x, b, ctx, 0);
+    if (exact) return exact;
+    // Retry with damped slopes, then gmin stepping: solve with every node leaking strongly to
+    // ground and take the leak away bit by bit.
+    const damped = { ...ctx, damped: true };
+    for (const e of this.nonlinear) e.beginSolve?.();
+    const x = this.newton(this.x, b, damped, 0);
     if (x) return x;
-    // Gmin stepping: solve with every node leaking strongly to ground, then take the leak away.
     let guess = this.x;
     for (const leak of GMIN_STEPS) {
-      const next = this.newton(guess, b, ctx, leak);
+      const next = this.newton(guess, b, damped, leak);
       if (!next) return null;
       guess = next;
     }
-    return this.newton(guess, b, ctx, 0);
+    return this.newton(guess, b, damped, 0);
   }
 
   private newton(guess: Float64Array, b0: Float64Array, ctx: StepCtx, leak: number): Float64Array | null {
@@ -226,6 +233,7 @@ export class Engine {
       const b = b0.slice();
       const s = new Stamper(n, A, b);
       for (const e of this.nonlinear) e.stampIter!(s, x, ctx);
+      this.iterations++;
       this.iterLU.factor(A);
       const next = this.iterLU.solve(b);
       let ok = true;

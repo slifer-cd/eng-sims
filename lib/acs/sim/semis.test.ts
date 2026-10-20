@@ -252,6 +252,27 @@ describe("op-amps", () => {
       const vin = e.pinVoltage(s, "p")!, vout = e.pinVoltage(a, "out")!;
       expect(vout).toBeCloseTo(Math.max(-15, Math.min(15, vin)), 1);
     }
+    // Saturating should cost a few iterations per step, not a crawl to the rail.
+    expect(e.iterations).toBeLessThan(5000);
+  });
+
+  it("finds its way out of the wrong rail with feedback", () => {
+    // An inverting amp whose input jumps across zero: the first guess has the output on the
+    // wrong rail, where the limiter is flat and plain Newton would bounce between rails.
+    const b = new CircuitBuilder();
+    const s = b.add("vac", { waveform: "square", amplitude: 1, frequency: 50 }), rin = b.add("resistor", { r: 1e3 });
+    const f = b.add("resistor", { r: 1e3 }), a = b.add("opamp"), g = b.add("ground");
+    b.wire([s, "p"], [rin, "a"]);
+    b.wire([rin, "b"], [a, "minus"]);
+    b.wire([a, "minus"], [f, "a"]);
+    b.wire([f, "b"], [a, "out"]);
+    b.wire([a, "plus"], [g, "g"]);
+    b.wire([s, "n"], [g, "g"]);
+    const e = engineFor(b, 1e-4);
+    for (let i = 0; i < 500; i++) {
+      expect(e.step(), e.error?.message).toBe(true);
+      expect(e.pinVoltage(a, "out")).toBeCloseTo(-e.pinVoltage(s, "p")!, 2);
+    }
   });
 });
 
