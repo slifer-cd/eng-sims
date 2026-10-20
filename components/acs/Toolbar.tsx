@@ -2,7 +2,9 @@
 
 import {
   AlertTriangle,
+  BookOpen,
   CircuitBoard,
+  Download,
   FilePlus,
   FlipVertical2,
   Info,
@@ -16,16 +18,18 @@ import {
   StepForward,
   Trash2,
   Undo2,
+  Upload,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
+import { EXAMPLES } from "@/lib/acs/editor/examples";
 import { MAX_DT, MIN_DT, SPEEDS, useAcsSettings } from "@/lib/acs/editor/settings";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
 import { formatSI, parseSI } from "@/lib/acs/units";
-import { newCircuit } from "./actions";
+import { downloadCircuit, loadExample, newCircuit, openCircuitFile } from "./actions";
 import { TextField } from "./TextField";
 
 function ToolButton(props: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
@@ -67,6 +71,8 @@ export function Toolbar() {
       <ToolButton title="New circuit (Alt+N)" onClick={newCircuit}>
         <FilePlus size={16} />
       </ToolButton>
+      <Examples />
+      <FileButtons />
       <Divider />
       <ToolButton title="Undo (Ctrl+Z)" onClick={s.undo} disabled={!s.past.length}>
         <Undo2 size={16} />
@@ -166,6 +172,8 @@ function SimControls() {
 function SimSettings() {
   const dt = useAcsSettings((s) => s.dt);
   const method = useAcsSettings((s) => s.method);
+  const symbols = useAcsSettings((s) => s.symbols);
+  const dots = useAcsSettings((s) => s.dots);
   const update = useAcsSettings((s) => s.update);
   return (
     <>
@@ -183,7 +191,7 @@ function SimSettings() {
         popover="auto"
         className="m-auto w-72 rounded-lg border border-line bg-panel p-4 text-sm text-foreground shadow-lg backdrop:bg-black/10"
       >
-        <h2 className="mb-3 font-semibold">Simulation settings</h2>
+        <h2 className="mb-3 font-semibold">Settings</h2>
         <div className="grid gap-3">
           <TextField
             label="Time step"
@@ -211,8 +219,92 @@ function SimSettings() {
               Trapezoidal keeps oscillations alive; backward Euler damps them but never rings on sudden jumps.
             </span>
           </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-muted">Symbols</span>
+            <select
+              value={symbols}
+              onChange={(e) => update({ symbols: e.target.value as "ansi" | "iec" })}
+              className="rounded-md border border-line bg-canvas px-2 py-1 outline-none focus:border-accent"
+            >
+              <option value="ansi">ANSI (zigzag resistors)</option>
+              <option value="iec">IEC (box resistors)</option>
+            </select>
+          </label>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" className="accent-accent" checked={dots} onChange={(e) => update({ dots: e.target.checked })} />
+            Show current as moving dots
+          </label>
         </div>
       </div>
+    </>
+  );
+}
+
+/** The built-in example circuits, in a popover. */
+function Examples() {
+  const list = useRef<HTMLDivElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        popoverTarget="acs-examples"
+        title="Open an example circuit"
+        className="flex shrink-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm hover:bg-hover"
+      >
+        <BookOpen size={16} aria-hidden />
+        Examples
+      </button>
+      <div
+        ref={list}
+        id="acs-examples"
+        popover="auto"
+        className="m-auto max-h-[80vh] w-[28rem] overflow-y-auto rounded-lg border border-line bg-panel p-2 text-sm text-foreground shadow-lg backdrop:bg-black/10"
+      >
+        <h2 className="px-2 pt-1 pb-2 font-semibold">Example circuits</h2>
+        <ul className="grid gap-0.5">
+          {EXAMPLES.map((ex) => (
+            <li key={ex.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  list.current?.hidePopover();
+                  loadExample(ex);
+                }}
+                className="w-full rounded-md px-2 py-1.5 text-left hover:bg-hover"
+              >
+                <span className="font-medium">{ex.name}</span>
+                <span className="block text-xs text-muted">{ex.description}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
+/** Save the circuit as a JSON file, or open one. */
+function FileButtons() {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <ToolButton title="Save the circuit as a file" onClick={downloadCircuit}>
+        <Download size={16} />
+      </ToolButton>
+      <ToolButton title="Open a circuit file" onClick={() => input.current?.click()}>
+        <Upload size={16} />
+      </ToolButton>
+      <input
+        ref={input}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          e.target.value = "";
+          if (file) void openCircuitFile(file);
+        }}
+      />
     </>
   );
 }

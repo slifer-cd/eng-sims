@@ -55,7 +55,7 @@ export default function Home() {
             name="Circuit simulator"
             route="/acs"
             blurb="Draw an analog circuit and watch its voltages and currents live, with every part's value yours to set."
-            facts={["DC and AC sources", "R, L, C and switches", "Probes and net labels"]}
+            facts={["R, L, C, transformers and relays", "Diodes, BJTs, FETs and op-amps", "Live scope and examples"]}
             action="Open the circuit simulator"
             preview={<CircuitPreview />}
           />

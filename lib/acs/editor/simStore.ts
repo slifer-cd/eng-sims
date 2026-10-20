@@ -33,6 +33,8 @@ export interface AcsSimState {
   setRunning(running: boolean): void;
   /** Flip a switch, or throw a two-way switch to its other side. */
   toggleSwitch(compId: string): void;
+  /** Hold a push button down, or let it go. */
+  press(compId: string, down: boolean): void;
   /** Advance by elapsed wall time while running; called once per animation frame. */
   advance(ms: number): void;
   /** What the scope records, and the simulated time it spans. */
@@ -76,6 +78,13 @@ export const useAcsSim = create<AcsSimState>()((set, get) => ({
     const value = engine?.switchValue(compId);
     if (!engine || value === undefined) return;
     engine.setSwitch(compId, typeof value === "boolean" ? !value : value === "a" ? "b" : "a");
+    set({ version: get().version + 1 });
+  },
+
+  press(compId, down) {
+    const engine = get().engine;
+    if (engine?.switchValue(compId) === undefined) return;
+    engine.setSwitch(compId, down);
     set({ version: get().version + 1 });
   },
 

@@ -91,7 +91,6 @@ function bjtSpec(id: "npn" | "pnp"): PartSpec {
       { key: "betaR", label: "Reverse gain βR", kind: "number", default: 1, positive: true, max: 1e5 },
       IS_FIELD,
     ],
-    valueLabel: (p) => `β ${formatSI(num(p, "beta"))}`,
     create: (c) => [bjt(c, npn ? 1 : -1, { is: num(c.props, "is"), bf: num(c.props, "beta"), br: num(c.props, "betaR") })],
   };
 }
@@ -110,7 +109,6 @@ function jfetSpec(id: "njfet" | "pjfet"): PartSpec {
       { key: "vp", label: "Pinch-off |Vp|", kind: "number", unit: "V", default: 2, positive: true },
       { key: "lambda", label: "Channel-length λ", kind: "number", unit: "/V", default: 0, min: 0, max: 1 },
     ],
-    valueLabel: (p) => `${formatSI(num(p, "idss"), "A")}`,
     create(c) {
       const vp = num(c.props, "vp");
       const model = { vto: -vp, beta: (2 * num(c.props, "idss")) / (vp * vp), lambda: num(c.props, "lambda"), gateIs: 1e-14 };
@@ -141,7 +139,6 @@ function mosSpec(id: "nmos" | "pmos"): PartSpec {
       },
       { key: "lambda", label: "Channel-length λ", kind: "number", unit: "/V", default: 0, min: 0, max: 1 },
     ],
-    valueLabel: (p) => `Vth ${formatSI(num(p, "vth"), "V")}`,
     create: (c) => [
       fet(c, n ? 1 : -1, { vto: num(c.props, "vth"), beta: num(c.props, "beta"), lambda: num(c.props, "lambda"), gateIs: 0 }),
     ],

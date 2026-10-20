@@ -314,6 +314,42 @@ function Switch2({ lead, switchValue }: SymbolProps) {
   );
 }
 
+function PushButton({ lead, props, switchValue }: SymbolProps) {
+  const closed = (switchValue === true) !== (props.normally === "closed");
+  const y = closed ? -1 : -9;
+  return (
+    <>
+      <Lead x1={-30} y1={0} x2={-14} y2={0} color={lead("a")} />
+      <Lead x1={14} y1={0} x2={30} y2={0} color={lead("b")} />
+      <line x1={-16} y1={y} x2={16} y2={y} className={BODY} strokeWidth={2.5} strokeLinecap="round" />
+      <line x1={0} y1={y} x2={0} y2={y - 8} className={BODY} strokeWidth={1.5} />
+      <line x1={-6} y1={y - 8} x2={6} y2={y - 8} className={BODY} strokeWidth={2.5} strokeLinecap="round" />
+      <Dot x={-14} y={0} />
+      <Dot x={14} y={0} />
+    </>
+  );
+}
+
+function Relay({ lead, switchValue }: SymbolProps) {
+  const on = switchValue === true;
+  return (
+    <>
+      <polyline points="-30,-20 -15,-20 -15,-12" fill="none" style={{ stroke: lead("c1") }} strokeWidth={2} />
+      <polyline points="-30,20 -15,20 -15,12" fill="none" style={{ stroke: lead("c2") }} strokeWidth={2} />
+      <rect x={-23} y={-12} width={16} height={24} className={`fill-chip ${BODY}`} strokeWidth={1.5} />
+      <line x1={-23} y1={12} x2={-7} y2={-12} className={BODY} strokeWidth={1} />
+      <line x1={-7} y1={0} x2={10} y2={0} className={BODY} strokeWidth={1} strokeDasharray="2 2" />
+      <Lead x1={30} y1={0} x2={10} y2={0} color={lead("com")} />
+      <Lead x1={22} y1={-20} x2={30} y2={-20} color={lead("nc")} />
+      <Lead x1={22} y1={20} x2={30} y2={20} color={lead("no")} />
+      <line x1={10} y1={0} x2={21} y2={on ? 18 : -18} style={{ stroke: lead("com") }} strokeWidth={2} strokeLinecap="round" />
+      <Dot x={10} y={0} />
+      <Dot x={22} y={-20} />
+      <Dot x={22} y={20} />
+    </>
+  );
+}
+
 function Probe({ lead }: SymbolProps) {
   return (
     <>
@@ -474,6 +510,8 @@ const SYMBOLS: Record<string, (p: SymbolProps) => ReactNode> = {
   ground: Ground,
   switch: Switch,
   switch2: Switch2,
+  button: PushButton,
+  relay: Relay,
   probe: Probe,
   netlabel: NetLabel,
 };

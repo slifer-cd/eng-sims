@@ -6,6 +6,8 @@ A browser-based digital logic simulator. Users wire built-in parts together, sav
 
 The second tool is a signals & systems calculator and simulator at `/sss` (`app/sss`, one static route per page): the user types a signal and gets exact formulas with worked steps (transforms, Fourier series, convolution, LTI systems, discrete time) plus animated plots. See `sss.md`.
 
+The circuit simulator at `/acs` is a live analog (MNA) simulator with an editor modelled on `/dls`: sources, R/L/C, transformers, switches and relays, diodes, transistors, op-amps, probes and a scope. See `acs.md`.
+
 The third tool is Bits & Logic at `/calc` (`app/calc`, one static route per page): number bases, signed integers, IEEE-754 floats, truth tables and a K-map / Quine–McCluskey minimiser, each with worked steps. See `calc.md`.
 
 ## Commands

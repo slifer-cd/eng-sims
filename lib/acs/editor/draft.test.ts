@@ -63,6 +63,12 @@ describe("parseDraft", () => {
     expect(parseDraft({ v: 1, circuit: { components: [], wires: [] }, settings: { method: "rk4" } })!.settings.method).toBe("trap");
   });
 
+  it("reads the symbol style and whether current dots show", () => {
+    const read = (settings: object) => parseDraft({ v: 1, circuit: { components: [], wires: [] }, settings })!.settings;
+    expect(read({ symbols: "iec", dots: false })).toMatchObject({ symbols: "iec", dots: false });
+    expect(read({ symbols: "din", dots: "yes" })).toMatchObject({ symbols: "ansi", dots: true });
+  });
+
   it("repairs settings one by one", () => {
     const parsed = parseDraft({ v: 1, circuit: { components: [], wires: [] }, settings: { dt: -1, speed: 0.1 } })!;
     expect(parsed.settings).toEqual({ ...DEFAULT_SETTINGS, speed: 0.1 });

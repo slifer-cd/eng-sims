@@ -11,9 +11,13 @@ export interface AcsSettings {
   speed: number;
   /** Integration for capacitors and inductors: trapezoidal or backward Euler. */
   method: "trap" | "be";
+  /** Resistor and inductor symbols: zigzag and humps (ANSI) or boxes (IEC). */
+  symbols: "ansi" | "iec";
+  /** Show current as dots moving along the wires. */
+  dots: boolean;
 }
 
-export const DEFAULT_SETTINGS: AcsSettings = { dt: 5e-6, speed: 1e-2, method: "trap" };
+export const DEFAULT_SETTINGS: AcsSettings = { dt: 5e-6, speed: 1e-2, method: "trap", symbols: "ansi", dots: true };
 
 /** Settings from a draft, each bad or missing field replaced by its default. */
 export function repairSettings(raw: unknown): AcsSettings {
@@ -23,6 +27,8 @@ export function repairSettings(raw: unknown): AcsSettings {
     dt: inRange(r.dt, MIN_DT, MAX_DT) ? r.dt : DEFAULT_SETTINGS.dt,
     speed: inRange(r.speed, SPEEDS[0], SPEEDS[SPEEDS.length - 1]) ? r.speed : DEFAULT_SETTINGS.speed,
     method: r.method === "trap" || r.method === "be" ? r.method : DEFAULT_SETTINGS.method,
+    symbols: r.symbols === "ansi" || r.symbols === "iec" ? r.symbols : DEFAULT_SETTINGS.symbols,
+    dots: typeof r.dots === "boolean" ? r.dots : DEFAULT_SETTINGS.dots,
   };
 }
 

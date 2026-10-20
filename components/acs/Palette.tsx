@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { WIRE_IDLE } from "@/lib/acs/editor/colors";
+import { useAcsSettings } from "@/lib/acs/editor/settings";
 import { useAcsEditor } from "@/lib/acs/editor/store";
 import { GROUP_TITLES, PARTS, type PartGroup, type PartSpec, partProps } from "@/lib/acs/parts";
 import { PartSymbol } from "./symbols";
@@ -80,6 +81,7 @@ function Group({ title, children }: { title: string; children: ReactNode }) {
 
 /** The part's symbol, scaled to fit an icon. */
 function PartIcon({ spec }: { spec: PartSpec }) {
+  const style = useAcsSettings((s) => s.symbols);
   const xs = [...spec.terminals.map((t) => t.x), -spec.bounds.w / 2, spec.bounds.w / 2];
   const ys = [...spec.terminals.map((t) => t.y), -spec.bounds.h / 2, spec.bounds.h / 2];
   const x0 = Math.min(...xs) - 3, y0 = Math.min(...ys) - 3;
@@ -94,7 +96,7 @@ function PartIcon({ spec }: { spec: PartSpec }) {
       <PartSymbol
         partId={spec.id}
         props={partProps(spec, {})}
-        style="ansi"
+        style={style}
         lead={() => WIRE_IDLE}
         uid={`icon-${spec.id}`}
         upright=""

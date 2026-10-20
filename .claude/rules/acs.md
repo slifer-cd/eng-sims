@@ -1,0 +1,22 @@
+---
+paths:
+  - "lib/acs/**"
+  - "components/acs/**"
+  - "app/acs/**"
+---
+
+# Circuit simulator (`/acs`)
+
+A sibling of `/dls`: it reuses `lib/model` (`Circuit`, `ComponentInst.chipId` = part id, plus the analog-only `flip`), the generic edits in `lib/editor/ops.ts`, the grid helpers in `lib/editor/layout.ts`, and `pinKey`/`wireKey`. It copies the store and canvas patterns rather than sharing them. Device models come from the standard SPICE/textbook equations; circuitjs (GPLv2) is an inspiration only, never a source of code.
+
+- `lib/acs/` is pure TS with no React or DOM imports; tests use relative imports and `CircuitBuilder` from `lib/sim/test-utils.ts`.
+  - `parts/`: the catalogue (`PartSpec`). Terminals are fixed grid points in the part's own frame (two-terminal parts at ±30; a source's + at the top). `fields` drive the inspector, and `partProps` fills defaults and replaces bad values. `create()` returns the simulation elements; ground, probes and net labels have none and only shape the nodes. `grounded` parts (rails, op-amps) reference ground themselves.
+  - `sim/compile.ts`: union-find over pins and wires (net labels join by name, ground terminals join node 0 = `GROUND` = −1). Without a ground, the first source's − terminal is the reference (a warning). Unknowns are node voltages first, then branch currents and internal nodes as elements allocate them. A current source with nothing wired to it is left out with a warning; `validate.ts` reports source/closed-switch loops and current sources with no path, and is re-run when a switch flips.
+  - `sim/element.ts`: the `Element` interface. `stampStatic` (cached, depends on dt/method/switch positions), `stampStep` (right-hand side: sources, companion history), and for nonlinear parts `beginSolve`/`stampIter`/`converged`; `accept` commits state and returns true when the static stamps changed. Switches and relay contacts are ideal branch rows (closed V(a) = V(b), open I = 0).
+  - `sim/engine.ts`: transient MNA with dense LU (`matrix.ts`). Backward Euler for the step after any jump (start, switch flip, relay change), else trapezoidal (or BE by setting). Linear circuits factor once; nonlinear ones run Newton with exact slopes, then a damped retry, then gmin stepping, then halve the step (up to 8 times) before stopping with "did not settle". Every node leaks GMIN (1e-12 S) to ground, so results match hand values to about R·GMIN. State carries over to a recompiled engine through `previous` (`save`/`restore`), keyed by component id and element index.
+  - Devices (`sim/elements/`): junction exponentials continue as a straight line past 100 A (otherwise a diode across a source swamps the matrix); P-types run the N-type equations on negated voltages; the op-amp/comparator output is a limited source to ground whose slope is floored only in the damped retry (a floored slope makes saturated feedback crawl).
+  - `editor/`: zustand stores (`store.ts` editor + undo, `simStore.ts` engine and the frame loop, `settings.ts`, `scope.ts` traces and recorder), `scene.ts` (terminal positions: flip, then rotate), `draft.ts` (`eng-sims:acs`, `{ v: 1, circuit, settings, scope }`, repaired field by field), `currents.ts` (wire currents for the dots from terminal currents by KCL over a spanning tree), `examples.ts`, `io.ts`.
+- Switch positions and button presses are simulation state (like `/dls` input values): the props are only the starting position, and a carried-over position is dropped when that prop changes.
+- Probes plot on the scope through their own `plot` prop; V/I/P traces added from the inspector live in the scope store. The recorder starts over when time goes back or a new engine isn't ahead of the last sample.
+- `components/acs/`: `Canvas.tsx` (gestures copied from `/dls`; a press without drag flips a toggle part, a momentary part is held while pressed), `PartView.tsx` + `symbols.tsx` (ANSI/IEC), `CurrentDots.tsx` (animates dash offsets in its own rAF loop), `ScopePanel.tsx` (reuses `components/sss/plot/Plot.tsx`), `Inspector.tsx`, `Toolbar.tsx` (examples, file, settings popovers), `actions.ts` (anything that needs `confirm`/`alert`).
+- Wire colours use the `--volt-pos/neg/zero` tokens with inline fallbacks (see `styling.md` on stale CSS).

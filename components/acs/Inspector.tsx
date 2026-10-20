@@ -11,7 +11,7 @@ import { TextField } from "./TextField";
 const SHORTCUTS: [string, string][] = [
   ["Click pin → click pin", "Draw a wire (click empty space for bends, or end on a wire)"],
   ["Drag / Shift-click", "Box-select / add to selection"],
-  ["Click a switch", "Flip it while simulating"],
+  ["Click a switch / hold a button", "Flip it / press it while simulating"],
   ["Ctrl+Enter / Ctrl+.", "Run-pause / step once"],
   ["R / F", "Rotate / flip"],
   ["Delete", "Delete selection"],

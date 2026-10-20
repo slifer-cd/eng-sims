@@ -267,7 +267,9 @@ export const useAcsEditor = create<AcsEditorState>()(
 
     fitView() {
       const { circuit, canvasSize } = get();
-      const b = sceneBounds(buildScene(circuit));
+      const parts = sceneBounds(buildScene(circuit));
+      // Value labels sit above or to the right of the parts.
+      const b = parts && { x: parts.x, y: parts.y - 20, w: parts.w + 70, h: parts.h + 20 };
       if (!b) {
         get().setViewport({ x: canvasSize.w / 2, y: canvasSize.h / 2, zoom: 1 });
         return;

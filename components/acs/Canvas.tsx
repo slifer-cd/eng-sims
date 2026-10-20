@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { voltColor } from "@/lib/acs/editor/colors";
-import { type MovePreview, type PartItem, buildScene, partItem } from "@/lib/acs/editor/scene";
+import { wireFlows } from "@/lib/acs/editor/currents";
+import { useAcsSettings } from "@/lib/acs/editor/settings";
+import { type MovePreview, type PartItem, type Scene, buildScene, partItem } from "@/lib/acs/editor/scene";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
 import type { Engine } from "@/lib/acs/sim/engine";
@@ -10,6 +12,7 @@ import { formatSI } from "@/lib/acs/units";
 import { GRID, projectOntoPolyline, snap, snapPoint } from "@/lib/editor/layout";
 import type { Endpoint, Point } from "@/lib/model/types";
 import { wireKey } from "@/lib/sim/compile";
+import { CurrentDots } from "./CurrentDots";
 import { PartView } from "./PartView";
 import { WirePreview, WireView } from "./WireView";
 
@@ -22,6 +25,8 @@ type Gesture =
       wireIds: string[];
       /** Switch to flip if the press ends without dragging. */
       toggle?: string;
+      /** Push button held down until the press ends. */
+      release?: string;
     }
   | { kind: "box"; start: Point; additive: boolean };
 
@@ -83,6 +88,18 @@ function tooltipLines(engine: Engine, item: PartItem | undefined, hit: Hit): str
   ];
 }
 
+/** Currents along the wires, from the parts' terminal currents. */
+function currentFlows(engine: Engine, scene: Scene) {
+  const cache = new Map<string, number[] | undefined>();
+  return wireFlows(scene, (compId, pinId) => {
+    const spec = scene.comps.get(compId)?.spec;
+    // Current reaching ground or a net label carries on elsewhere.
+    if (!spec || spec.id === "ground" || spec.id === "netlabel") return undefined;
+    if (!cache.has(compId)) cache.set(compId, engine.terminalCurrents(compId));
+    return cache.get(compId)?.[spec.terminals.findIndex((t) => t.id === pinId)] ?? 0;
+  });
+}
+
 export function Canvas() {
   const svgRef = useRef<SVGSVGElement>(null);
   const circuit = useAcsEditor((s) => s.circuit);
@@ -91,6 +108,9 @@ export function Canvas() {
   const placing = useAcsEditor((s) => s.placing);
   const drawing = useAcsEditor((s) => s.drawing);
   const engine = useAcsSim((s) => s.engine);
+  const running = useAcsSim((s) => s.running);
+  const symbols = useAcsSettings((s) => s.symbols);
+  const dots = useAcsSettings((s) => s.dots);
   // Re-render when simulated values change.
   useAcsSim((s) => s.version);
 
@@ -232,8 +252,11 @@ export function Canvas() {
       }
       if (!s.selection.comps.includes(id)) s.select({ comps: [id], wires: [] });
       const sel = useAcsEditor.getState().selection;
-      const toggle = scene.comps.get(id)?.spec?.interactive === "toggle" ? id : undefined;
-      gesture.current = { kind: "move", start: world, compIds: sel.comps, wireIds: sel.wires, toggle };
+      const interactive = scene.comps.get(id)?.spec?.interactive;
+      const toggle = interactive === "toggle" ? id : undefined;
+      const release = interactive === "momentary" ? id : undefined;
+      if (release) useAcsSim.getState().press(release, true);
+      gesture.current = { kind: "move", start: world, compIds: sel.comps, wireIds: sel.wires, toggle, release };
       svgRef.current!.setPointerCapture(e.pointerId);
       return;
     }
@@ -280,6 +303,7 @@ export function Canvas() {
     if (g?.kind === "pan") setPanning(false);
     if (g?.kind === "move") {
       const dragged = !!move && (move.dx !== 0 || move.dy !== 0);
+      if (g.release) useAcsSim.getState().press(g.release, false);
       if (dragged) s.moveSelection(g.compIds, g.wireIds, move.dx, move.dy);
       else if (g.toggle) useAcsSim.getState().toggleSwitch(g.toggle);
       setMove(null);
@@ -313,6 +337,7 @@ export function Canvas() {
     h: Math.abs(box.b.y - box.a.y),
   };
   const tip = hover && engine ? tooltipLines(engine, scene.comps.get(hover.hit.compId ?? ""), hover.hit) : [];
+  const flows = dots && engine && !engine.error && !move ? currentFlows(engine, scene) : [];
 
   return (
     <div className="relative h-full w-full">
@@ -351,11 +376,12 @@ export function Canvas() {
               color={voltColor(engine?.voltage(engine.netlist.nodeByKey.get(wireKey("", w.wire.id))), range)}
             />
           ))}
+          <CurrentDots flows={flows} running={running} />
           {[...scene.comps.values()].map((c) => (
             <PartView
               key={c.comp.id}
               item={c}
-              style="ansi"
+              style={symbols}
               selected={selComps.has(c.comp.id)}
               error={errorComps.has(c.comp.id)}
               openPins={openPins(c)}
@@ -363,7 +389,7 @@ export function Canvas() {
             />
           ))}
           {drawing && <WirePreview points={[drawing.start, ...drawing.points, ...(cursor ? [cursor] : [])]} />}
-          {ghost && <PartView item={ghost} style="ansi" openPins={openPins(ghost)} ghost />}
+          {ghost && <PartView item={ghost} style={symbols} openPins={openPins(ghost)} ghost />}
           {boxRect && (
             <rect
               x={boxRect.x}
