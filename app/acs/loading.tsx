@@ -12,7 +12,7 @@ export default function Loading() {
         <span className={`${bar} ml-6 h-5 w-48`} />
       </div>
       <div className="flex min-h-0 flex-1">
-        <aside className="grid w-52 shrink-0 content-start gap-2.5 border-r border-line bg-panel p-3">
+        <aside className="grid w-60 shrink-0 content-start gap-2.5 border-r border-line bg-panel p-3">
           <span className={`${bar} mb-1 h-3 w-24`} />
           {Array.from({ length: 5 }, (_, i) => (
             <span key={i} className={`${bar} h-6`} />

@@ -435,20 +435,17 @@ function Jfet({ partId, lead }: SymbolProps) {
   );
 }
 
+/** The simplified MOSFET symbol: gate plate beside a solid channel, no body arrow; P-channel has a bubble on the gate. */
 function Mosfet({ partId, lead }: SymbolProps) {
-  const n = partId === "nmos";
-  const d = lead("d"), src = lead("s");
+  const p = partId === "pmos";
   return (
     <>
-      <Lead x1={-30} y1={0} x2={-6} y2={0} color={lead("g")} />
+      <Lead x1={-30} y1={0} x2={p ? -14 : -6} y2={0} color={lead("g")} />
+      {p && <circle cx={-10} cy={0} r={3.5} className={`fill-chip ${BODY}`} strokeWidth={1.5} />}
       <line x1={-6} y1={-12} x2={-6} y2={12} className={BODY} strokeWidth={2} />
-      {[-14, -4, 6].map((y) => (
-        <line key={y} x1={0} y1={y} x2={0} y2={y + 8} className={BODY} strokeWidth={2.5} />
-      ))}
-      <polyline points="0,-10 10,-10 10,-30" fill="none" style={{ stroke: d }} strokeWidth={2} strokeLinejoin="round" />
-      <polyline points="0,10 10,10 10,30" fill="none" style={{ stroke: src }} strokeWidth={2} strokeLinejoin="round" />
-      <polyline points="0,0 10,0 10,10" fill="none" style={{ stroke: src }} strokeWidth={1.5} />
-      {n ? <Arrowhead x={1} y={0} deg={180} /> : <Arrowhead x={9} y={0} deg={0} />}
+      <line x1={0} y1={-14} x2={0} y2={14} className={BODY} strokeWidth={2.5} />
+      <polyline points="0,-10 10,-10 10,-30" fill="none" style={{ stroke: lead("d") }} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points="0,10 10,10 10,30" fill="none" style={{ stroke: lead("s") }} strokeWidth={2} strokeLinejoin="round" />
     </>
   );
 }

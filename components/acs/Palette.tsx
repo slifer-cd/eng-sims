@@ -22,7 +22,7 @@ export function Palette() {
     .filter((g) => g.parts.length > 0);
 
   return (
-    <aside className="flex w-52 shrink-0 flex-col border-r border-line bg-panel text-sm">
+    <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-panel text-sm">
       <label className="flex items-center gap-2 border-b border-line px-3 py-2">
         <Search size={14} className="text-muted" aria-hidden />
         <input
