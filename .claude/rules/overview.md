@@ -24,3 +24,7 @@ The third tool is Bits & Logic at `/calc` (`app/calc`, one static route per page
 - `next.config.ts` enables `cacheComponents` and `partialPrefetching`. Check the bundled docs before writing data-fetching or caching code.
 - Import alias `@/*` maps to the repo root
 - Package manager is pnpm. Dependency build scripts are allow-listed via `allowBuilds` in `pnpm-workspace.yaml`.
+
+## Git
+
+- Work on the `develop` branch. Never create a new branch or worktree unless the user asks to work on another branch. This overrides any skill or workflow that creates one (e.g. for plan execution or feature work).
