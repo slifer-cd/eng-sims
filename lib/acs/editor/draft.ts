@@ -1,5 +1,6 @@
 import type { Circuit, ComponentInst, Endpoint, Point, Rotation, Wire } from "../../model/types";
 import { ACS_KEY } from "../../storage/localKeys";
+import { type ScopeSettings, repairScope, useAcsScope } from "./scope";
 import { type AcsSettings, currentSettings, repairSettings, useAcsSettings } from "./settings";
 import { useAcsEditor } from "./store";
 
@@ -12,6 +13,7 @@ export interface AcsDraft {
   v: 1;
   circuit: Circuit;
   settings: AcsSettings;
+  scope: ScopeSettings;
 }
 
 type Raw = Record<string, unknown>;
@@ -67,7 +69,7 @@ export function repairCircuit(raw: unknown): Circuit | null {
 export function parseDraft(raw: unknown): Omit<AcsDraft, "v"> | null {
   if (!isObject(raw) || raw.v !== 1) return null;
   const circuit = repairCircuit(raw.circuit);
-  return circuit && { circuit, settings: repairSettings(raw.settings) };
+  return circuit && { circuit, settings: repairSettings(raw.settings), scope: repairScope(raw.scope) };
 }
 
 let restored = false;
@@ -84,6 +86,7 @@ export function restoreAcsSession() {
     const draft = parseDraft(JSON.parse(localStorage.getItem(ACS_KEY) ?? "null"));
     if (!draft) return;
     useAcsSettings.getState().update(draft.settings);
+    useAcsScope.getState().load(draft.scope);
     useAcsEditor.getState().load(draft.circuit);
     useAcsEditor.getState().fitView();
   } catch {
@@ -93,7 +96,8 @@ export function restoreAcsSession() {
 
 export function saveAcsDraft() {
   try {
-    const draft: AcsDraft = { v: 1, circuit: useAcsEditor.getState().circuit, settings: currentSettings() };
+    const { traces, window } = useAcsScope.getState();
+    const draft: AcsDraft = { v: 1, circuit: useAcsEditor.getState().circuit, settings: currentSettings(), scope: { traces, window } };
     localStorage.setItem(ACS_KEY, JSON.stringify(draft));
   } catch {
     // Storage full or blocked; nothing to do.

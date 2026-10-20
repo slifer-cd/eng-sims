@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { restoreAcsSession, saveAcsDraft } from "@/lib/acs/editor/draft";
+import { activeTraces, autoWindow, useAcsScope } from "@/lib/acs/editor/scope";
 import { useAcsSettings } from "@/lib/acs/editor/settings";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
@@ -9,6 +10,7 @@ import { newCircuit } from "./actions";
 import { Canvas } from "./Canvas";
 import { Inspector } from "./Inspector";
 import { Palette } from "./Palette";
+import { ScopePanel } from "./ScopePanel";
 import { Toolbar } from "./Toolbar";
 
 /** Restore the session once, then autosave the draft whenever the circuit or settings change. */
@@ -29,6 +31,7 @@ function usePersistence() {
       if (s.circuit !== prev.circuit) later();
     });
     const unsubSettings = useAcsSettings.subscribe(later);
+    const unsubScope = useAcsScope.subscribe(later);
     // Don't lose the last edit to the debounce when the page goes away.
     window.addEventListener("pagehide", save);
     return () => {
@@ -36,6 +39,7 @@ function usePersistence() {
       window.removeEventListener("pagehide", save);
       unsubCircuit();
       unsubSettings();
+      unsubScope();
     };
   }, []);
 }
@@ -90,11 +94,29 @@ function useSimulation() {
       if (s.circuit !== prev.circuit) rebuild();
     });
     const unsubSettings = useAcsSettings.subscribe((s, prev) => {
-      if (s.dt !== prev.dt) rebuild();
+      if (s.dt !== prev.dt || s.method !== prev.method) rebuild();
     });
     return () => {
       unsubCircuit();
       unsubSettings();
+    };
+  }, []);
+
+  // Tell the simulation what the scope records.
+  useEffect(() => {
+    const sync = () => {
+      const { circuit } = useAcsEditor.getState();
+      const { traces, window } = useAcsScope.getState();
+      useAcsSim.getState().setScope(activeTraces(circuit, traces), window === "auto" ? autoWindow(circuit) : window);
+    };
+    sync();
+    const unsubCircuit = useAcsEditor.subscribe((s, prev) => {
+      if (s.circuit !== prev.circuit) sync();
+    });
+    const unsubScope = useAcsScope.subscribe(sync);
+    return () => {
+      unsubCircuit();
+      unsubScope();
     };
   }, []);
 
@@ -122,8 +144,11 @@ export function AcsEditor() {
       <Toolbar />
       <div className="flex min-h-0 flex-1">
         <Palette />
-        <main className="min-w-0 flex-1">
-          <Canvas />
+        <main className="flex min-w-0 flex-1 flex-col">
+          <div className="min-h-0 flex-1">
+            <Canvas />
+          </div>
+          <ScopePanel />
         </main>
         <Inspector />
       </div>

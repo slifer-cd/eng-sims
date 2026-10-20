@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
 import { type PropField, fieldValue, getPart, partProps } from "@/lib/acs/parts";
 import { formatSI, parseSI } from "@/lib/acs/units";
 import type { ComponentInst, PropValue } from "@/lib/model/types";
+import { type Quantity, traceKey, useAcsScope } from "@/lib/acs/editor/scope";
+import { TextField } from "./TextField";
 
 const SHORTCUTS: [string, string][] = [
   ["Click pin → click pin", "Draw a wire (click empty space for bends, or end on a wire)"],
@@ -132,63 +133,6 @@ function FieldInput({ field, value, onChange }: { field: PropField; value: PropV
   }
 }
 
-/**
- * A text input that commits on Enter or blur, so typing makes one undo step. With `parse`,
- * text it rejects is marked and not committed.
- */
-function TextField(props: {
-  label: string;
-  value: string;
-  help?: string;
-  parse?: (raw: string) => number | null;
-  onCommit: (raw: string, parsed?: number) => void;
-}) {
-  const [draft, setDraft] = useState(props.value);
-  const [bad, setBad] = useState(false);
-  // Follow the value when it changes elsewhere, or comes back formatted after a commit.
-  const [shown, setShown] = useState(props.value);
-  if (shown !== props.value) {
-    setShown(props.value);
-    setDraft(props.value);
-    setBad(false);
-  }
-  const commit = () => {
-    if (draft === props.value) return;
-    if (!props.parse) return props.onCommit(draft);
-    const n = props.parse(draft);
-    if (n === null) setBad(true);
-    else props.onCommit(draft, n);
-  };
-  return (
-    <label className="grid gap-1">
-      <span className="text-xs text-muted">{props.label}</span>
-      <input
-        className={`rounded-md border bg-canvas px-2 py-1 font-mono outline-none ${bad ? "border-sig-x" : "border-line focus:border-accent"}`}
-        aria-invalid={bad}
-        value={draft}
-        onChange={(e) => {
-          setDraft(e.target.value);
-          setBad(false);
-        }}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-          if (e.key === "Escape") {
-            setDraft(props.value);
-            setBad(false);
-            e.currentTarget.blur();
-          }
-        }}
-      />
-      {bad ? (
-        <span className="text-xs text-sig-x">Not a valid value</span>
-      ) : (
-        props.help && <span className="text-xs text-muted">{props.help}</span>
-      )}
-    </label>
-  );
-}
-
 /** Live voltage, current and power of the selected part. */
 function Readouts({ compId }: { compId: string }) {
   const engine = useAcsSim((s) => s.engine);
@@ -205,6 +149,7 @@ function Readouts({ compId }: { compId: string }) {
     if (v !== undefined) rows.push(["Voltage", formatSI(v, "V")]);
   }
   if (!rows.length) return null;
+  const plottable = (["v", "i", "p"] as Quantity[]).filter((q) => r?.[q] !== undefined);
   return (
     <section className="mt-1 rounded-md border border-line bg-canvas p-2">
       <h3 className="mb-1 text-xs font-semibold tracking-wide text-accent uppercase">Now</h3>
@@ -217,6 +162,36 @@ function Readouts({ compId }: { compId: string }) {
         ))}
       </dl>
       {r?.p !== undefined && <p className="mt-1 text-[11px] text-muted">Power is what the part absorbs; negative means it delivers.</p>}
+      {plottable.length > 0 && <PlotToggles compId={compId} quantities={plottable} />}
     </section>
+  );
+}
+
+const QUANTITY_NAME: Record<Quantity, string> = { v: "V", i: "I", p: "P" };
+
+/** Buttons that add the part's voltage, current or power to the scope, or take it off. */
+function PlotToggles({ compId, quantities }: { compId: string; quantities: Quantity[] }) {
+  const traces = useAcsScope((s) => s.traces);
+  const { add, remove } = useAcsScope.getState();
+  return (
+    <div className="mt-2 flex items-center gap-1 text-xs">
+      <span className="mr-1 text-muted">Scope</span>
+      {quantities.map((quantity) => {
+        const t = { compId, quantity };
+        const on = traces.some((x) => traceKey(x) === traceKey(t));
+        return (
+          <button
+            key={quantity}
+            type="button"
+            aria-pressed={on}
+            title={on ? "Take off the scope" : "Plot on the scope"}
+            onClick={() => (on ? remove(t) : add(t))}
+            className={`rounded border px-2 py-0.5 font-mono ${on ? "border-accent bg-accent/15 text-accent" : "border-line hover:bg-hover"}`}
+          >
+            {QUANTITY_NAME[quantity]}
+          </button>
+        );
+      })}
+    </div>
   );
 }

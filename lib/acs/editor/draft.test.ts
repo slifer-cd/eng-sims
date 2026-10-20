@@ -44,7 +44,23 @@ describe("repairCircuit", () => {
 describe("parseDraft", () => {
   it("reads a saved draft", () => {
     const draft = { v: 1, circuit: { components: [resistor], wires: [] }, settings: { dt: 1e-6, speed: 0.1 } };
-    expect(parseDraft(draft)).toEqual({ circuit: draft.circuit, settings: { ...DEFAULT_SETTINGS, dt: 1e-6, speed: 0.1 } });
+    expect(parseDraft(draft)).toEqual({
+      circuit: draft.circuit,
+      settings: { ...DEFAULT_SETTINGS, dt: 1e-6, speed: 0.1 },
+      scope: { traces: [], window: "auto" },
+    });
+  });
+
+  it("reads the scope and the integration method", () => {
+    const parsed = parseDraft({
+      v: 1,
+      circuit: { components: [], wires: [] },
+      settings: { method: "be" },
+      scope: { traces: [{ compId: "r1", quantity: "p" }], window: 0.5 },
+    })!;
+    expect(parsed.settings.method).toBe("be");
+    expect(parsed.scope).toEqual({ traces: [{ compId: "r1", quantity: "p" }], window: 0.5 });
+    expect(parseDraft({ v: 1, circuit: { components: [], wires: [] }, settings: { method: "rk4" } })!.settings.method).toBe("trap");
   });
 
   it("repairs settings one by one", () => {

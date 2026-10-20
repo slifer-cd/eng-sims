@@ -2,12 +2,19 @@ import { create } from "zustand";
 import type { Circuit } from "../../model/types";
 import { type Problem, compileCircuit } from "../sim/compile";
 import { Engine } from "../sim/engine";
+import { Recorder, type Trace } from "./scope";
 import { useAcsSettings } from "./settings";
 
 /** Real time the simulation may use per animation frame, so a heavy circuit can't freeze the page. */
 const FRAME_BUDGET_MS = 12;
 /** Longest gap between frames that counts, e.g. after the tab was in the background. */
 const MAX_FRAME_MS = 100;
+/** Most samples the scope keeps per trace across its window. */
+const SAMPLES_PER_WINDOW = 2000;
+
+/** The scope's history. Not React state: the scope reads it when `version` changes. */
+export const recorder = new Recorder();
+let scope: { traces: Trace[]; window: number } = { traces: [], window: 0.1 };
 
 export interface AcsSimState {
   engine: Engine | null;
@@ -28,12 +35,14 @@ export interface AcsSimState {
   toggleSwitch(compId: string): void;
   /** Advance by elapsed wall time while running; called once per animation frame. */
   advance(ms: number): void;
+  /** What the scope records, and the simulated time it spans. */
+  setScope(traces: Trace[], window: number): void;
 }
 
 function makeEngine(circuit: Circuit, previous?: Engine) {
-  const { dt } = useAcsSettings.getState();
+  const { dt, method } = useAcsSettings.getState();
   const netlist = compileCircuit(circuit);
-  return { engine: new Engine(netlist, { previous, settings: { dt } }), warnings: netlist.warnings };
+  return { engine: new Engine(netlist, { previous, settings: { dt, method } }), warnings: netlist.warnings };
 }
 
 export const useAcsSim = create<AcsSimState>()((set, get) => ({
@@ -48,11 +57,13 @@ export const useAcsSim = create<AcsSimState>()((set, get) => ({
   },
 
   reset(circuit) {
+    recorder.clear();
     set({ ...makeEngine(circuit), behind: false, version: get().version + 1 });
   },
 
   step() {
-    get().engine?.step();
+    const engine = get().engine;
+    if (engine?.step()) record(engine);
     set({ version: get().version + 1 });
   },
 
@@ -72,11 +83,21 @@ export const useAcsSim = create<AcsSimState>()((set, get) => ({
     const { engine } = get();
     if (!engine) return;
     const { speed } = useAcsSettings.getState();
-    const { steps, behind } = engine.run((Math.min(ms, MAX_FRAME_MS) / 1000) * speed, FRAME_BUDGET_MS);
+    const { steps, behind } = engine.run((Math.min(ms, MAX_FRAME_MS) / 1000) * speed, FRAME_BUDGET_MS, undefined, () =>
+      record(engine),
+    );
     if (engine.error) {
       set({ running: false, behind: false, version: get().version + 1 });
       return;
     }
     if (steps > 0 || behind !== get().behind) set({ behind, version: get().version + 1 });
   },
+
+  setScope(traces, window) {
+    scope = { traces, window };
+  },
 }));
+
+function record(engine: Engine) {
+  recorder.record(engine, scope.traces, scope.window / SAMPLES_PER_WINDOW);
+}

@@ -15,6 +15,8 @@ export interface Netlist {
   elements: Element[];
   /** Part id of every component that compiled. */
   parts: Map<string, string>;
+  /** Unknowns of every component's terminals, in its part's terminal order. */
+  terminals: Map<string, number[]>;
   /** Unknown of a terminal or wire (GROUND for ground), keyed by `pinKey("", …)` / `wireKey("", …)`. */
   nodeByKey: Map<string, number>;
   nodeOf(compId: string, terminalId: string): number | undefined;
@@ -101,24 +103,35 @@ export function compileCircuit(circuit: Circuit): Netlist {
   const isCurrent: number[] = Array(unknownOfRoot.size).fill(0);
   const touching: Set<string>[] = Array.from({ length: unknownOfRoot.size }, () => new Set<string>());
   const elements: Element[] = [];
+  const terminals = new Map<string, number[]>();
   for (const { comp, spec } of placed) {
     const nodes = spec.terminals.map((t) => nodeByKey.get(pinKey("", comp.id, t.id))!);
+    terminals.set(comp.id, nodes);
     for (const n of nodes) if (n !== GROUND) touching[n].add(comp.id);
+  }
+  for (const { comp, spec } of placed) {
     if (!spec.create) continue;
+    const nodes = terminals.get(comp.id)!;
     const alloc = (current: boolean) => {
       isCurrent.push(current ? 1 : 0);
       touching.push(new Set([comp.id]));
       return isCurrent.length - 1;
     };
-    elements.push(
-      ...spec.create({
-        compId: comp.id,
-        props: partProps(spec, comp.props),
-        nodes,
-        branch: () => alloc(true),
-        node: () => alloc(false),
-      }),
-    );
+    const made = spec.create({
+      compId: comp.id,
+      props: partProps(spec, comp.props),
+      nodes,
+      branch: () => alloc(true),
+      node: () => alloc(false),
+    });
+    // A current source just placed, with nothing on its terminals yet, would stop the whole
+    // simulation (its current has nowhere to go), so it sits out until it is wired.
+    const alone = nodes.every((n) => n === GROUND || touching[n].size === 1);
+    if (alone && made.every((e) => e.currentSource)) {
+      warnings.push({ message: `${displayName(comp, spec)} is not connected, so it is left out`, compIds: [comp.id] });
+      continue;
+    }
+    elements.push(...made);
   }
 
   const fixedErrors = [...errors];
@@ -129,6 +142,7 @@ export function compileCircuit(circuit: Circuit): Netlist {
     isCurrent: Uint8Array.from(isCurrent),
     elements,
     parts,
+    terminals,
     nodeByKey,
     nodeOf: (compId, terminalId) => nodeByKey.get(pinKey("", compId, terminalId)),
     compsAt: (unknown) => [...(touching[unknown] ?? [])],

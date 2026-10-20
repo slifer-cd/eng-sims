@@ -68,7 +68,7 @@ export class Engine {
    * Step through `simSeconds` of circuit time, stopping early once `budgetMs` of real time
    * is used up. Time that doesn't fill a whole step carries over to the next call.
    */
-  run(simSeconds: number, budgetMs: number, now: () => number = () => performance.now()) {
+  run(simSeconds: number, budgetMs: number, now: () => number = () => performance.now(), onStep?: () => void) {
     let steps = 0;
     let behind = false;
     if (this.error) return { steps, behind };
@@ -79,6 +79,7 @@ export class Engine {
       if (!this.step()) break;
       this.lag -= dt;
       steps++;
+      onStep?.();
       if (now() - start >= budgetMs) {
         behind = this.lag >= dt;
         if (behind) this.lag = 0;
@@ -107,6 +108,18 @@ export class Engine {
   readout(compId: string): Readout | undefined {
     const e = this.netlist.elements.find((x) => x.compId === compId && x.readout);
     return e?.readout!(this.x);
+  }
+
+  /**
+   * One quantity of a part: its voltage, current or power, or for a one-terminal part (a probe,
+   * a rail) the voltage of its node. Undefined if the part doesn't have it.
+   */
+  measure(compId: string, quantity: "v" | "i" | "p"): number | undefined {
+    const r = this.readout(compId);
+    if (r) return r[quantity];
+    if (quantity !== "v") return undefined;
+    const nodes = this.netlist.terminals.get(compId);
+    return nodes?.length === 1 ? this.voltage(nodes[0]) : undefined;
   }
 
   /** A switch's live position, or undefined for other parts. */

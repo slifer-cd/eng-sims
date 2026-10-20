@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatSI, parseSI } from "./units";
+import { formatSI, parseSI, siScale } from "./units";
 
 describe("parseSI", () => {
   it.each([
@@ -57,5 +57,18 @@ describe("formatSI", () => {
     for (const v of [1, 4.7e3, 33e-9, 1.5e-3, 0.02, 2.2e6, 1e-14]) {
       expect(parseSI(formatSI(v, "F"))! / v).toBeCloseTo(1, 2);
     }
+  });
+});
+
+describe("siScale", () => {
+  it.each([
+    [5e-3, 1e3, "m"],
+    [0.04, 1e3, "m"],
+    [2500, 1e-3, "k"],
+    [7, 1, ""],
+    [3e-7, 1e9, "n"],
+    [0, 1, ""],
+  ])("shows values up to %s with factor %s (%s)", (max, factor, prefix) => {
+    expect(siScale(max)).toEqual({ factor, prefix });
   });
 });

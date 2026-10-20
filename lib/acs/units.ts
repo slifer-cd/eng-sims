@@ -47,3 +47,10 @@ export function formatSI(value: number, unit = "", digits = 3): string {
   }
   return join(n, NAMES[exp]);
 }
+
+/** The engineering prefix to show values up to `maxAbs` in, and the factor to multiply them by. */
+export function siScale(maxAbs: number): { factor: number; prefix: string } {
+  if (!(maxAbs > 0) || !Number.isFinite(maxAbs)) return { factor: 1, prefix: "" };
+  const exp = Math.max(-18, Math.min(12, Math.floor(Math.log10(maxAbs) / 3) * 3));
+  return { factor: Number((10 ** -exp).toPrecision(12)), prefix: NAMES[exp] };
+}

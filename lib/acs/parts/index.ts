@@ -1,7 +1,7 @@
 import type { Props } from "../../model/types";
 import { formatSI } from "../units";
-import { resistor } from "../sim/elements/passive";
-import { currentSource, dc, voltageSource } from "../sim/elements/sources";
+import { capacitor, inductor, resistor, transformer } from "../sim/elements/passive";
+import { type WaveformProps, currentSource, dc, voltageSource, waveform } from "../sim/elements/sources";
 import { spdt, spst } from "../sim/elements/switching";
 import type { PartSpec, PropField } from "./types";
 
@@ -9,16 +9,49 @@ export * from "./types";
 
 const num = (props: Props, key: string) => props[key] as number;
 
+const WAVEFORMS = [
+  { value: "sine", label: "Sine" },
+  { value: "square", label: "Square" },
+  { value: "triangle", label: "Triangle" },
+  { value: "sawtooth", label: "Sawtooth" },
+];
+
+/** Fields of an AC source whose amplitude and offset are in `unit`. */
+function acFields(unit: "V" | "A", amplitude: number): PropField[] {
+  return [
+    { key: "waveform", label: "Waveform", kind: "select", default: "sine", options: WAVEFORMS },
+    { key: "amplitude", label: "Amplitude (peak)", kind: "number", unit, default: amplitude },
+    { key: "frequency", label: "Frequency", kind: "number", unit: "Hz", default: 50, positive: true },
+    { key: "phase", label: "Phase", kind: "number", unit: "°", default: 0, help: "90° starts at the peak." },
+    { key: "offset", label: "DC offset", kind: "number", unit, default: 0 },
+  ];
+}
+
+const acWave = (props: Props) => waveform(props as unknown as WaveformProps);
+
+function acLabel(props: Props, unit: string) {
+  const shape = props.waveform === "sine" ? "" : ` ${props.waveform}`;
+  const offset = num(props, "offset") ? ` ${num(props, "offset") > 0 ? "+" : ""}${formatSI(num(props, "offset"), unit)}` : "";
+  return `${formatSI(num(props, "amplitude"), unit)} ${formatSI(num(props, "frequency"), "Hz")}${shape}${offset}`;
+}
+
+const TWO_TERMINAL_SOURCE = [
+  { id: "p", name: "+", x: 0, y: -30 },
+  { id: "n", name: "−", x: 0, y: 30 },
+];
+const RAIL = [{ id: "p", name: "+", x: 0, y: 20 }];
+const TWO_TERMINAL = [
+  { id: "a", name: "A", x: -30, y: 0 },
+  { id: "b", name: "B", x: 30, y: 0 },
+];
+
 const specs: PartSpec[] = [
   {
     id: "vdc",
     name: "DC voltage source",
     group: "sources",
     keywords: ["battery", "supply"],
-    terminals: [
-      { id: "p", name: "+", x: 0, y: -30 },
-      { id: "n", name: "−", x: 0, y: 30 },
-    ],
+    terminals: TWO_TERMINAL_SOURCE,
     bounds: { w: 40, h: 60 },
     fields: [{ key: "v", label: "Voltage", kind: "number", unit: "V", default: 5 }],
     valueLabel: (p) => formatSI(num(p, "v"), "V"),
@@ -30,7 +63,7 @@ const specs: PartSpec[] = [
     name: "DC voltage rail",
     group: "sources",
     keywords: ["supply", "vcc", "vdd", "single terminal"],
-    terminals: [{ id: "p", name: "+", x: 0, y: 20 }],
+    terminals: RAIL,
     bounds: { w: 40, h: 40 },
     fields: [{ key: "v", label: "Voltage", kind: "number", unit: "V", default: 5 }],
     valueLabel: (p) => formatSI(num(p, "v"), "V"),
@@ -41,10 +74,7 @@ const specs: PartSpec[] = [
     id: "idc",
     name: "DC current source",
     group: "sources",
-    terminals: [
-      { id: "p", name: "+", x: 0, y: -30 },
-      { id: "n", name: "−", x: 0, y: 30 },
-    ],
+    terminals: TWO_TERMINAL_SOURCE,
     bounds: { w: 40, h: 60 },
     fields: [{ key: "i", label: "Current", kind: "number", unit: "A", default: 0.01 }],
     valueLabel: (p) => formatSI(num(p, "i"), "A"),
@@ -56,11 +86,59 @@ const specs: PartSpec[] = [
     name: "DC current rail",
     group: "sources",
     keywords: ["single terminal"],
-    terminals: [{ id: "p", name: "+", x: 0, y: 20 }],
+    terminals: RAIL,
     bounds: { w: 40, h: 40 },
     fields: [{ key: "i", label: "Current", kind: "number", unit: "A", default: 0.01 }],
     valueLabel: (p) => formatSI(num(p, "i"), "A"),
     create: (c) => [currentSource(c, dc(num(c.props, "i")))],
+    grounded: true,
+  },
+  {
+    id: "vac",
+    name: "AC voltage source",
+    group: "sources",
+    keywords: ["sine", "square", "triangle", "sawtooth", "signal", "generator", "function"],
+    terminals: TWO_TERMINAL_SOURCE,
+    bounds: { w: 40, h: 60 },
+    fields: acFields("V", 5),
+    valueLabel: (p) => acLabel(p, "V"),
+    create: (c) => [voltageSource(c, acWave(c.props))],
+    reference: "n",
+  },
+  {
+    id: "vrail-ac",
+    name: "AC voltage rail",
+    group: "sources",
+    keywords: ["sine", "square", "signal", "single terminal"],
+    terminals: RAIL,
+    bounds: { w: 40, h: 40 },
+    fields: acFields("V", 5),
+    valueLabel: (p) => acLabel(p, "V"),
+    create: (c) => [voltageSource(c, acWave(c.props))],
+    grounded: true,
+  },
+  {
+    id: "iac",
+    name: "AC current source",
+    group: "sources",
+    keywords: ["sine", "square", "signal"],
+    terminals: TWO_TERMINAL_SOURCE,
+    bounds: { w: 40, h: 60 },
+    fields: acFields("A", 0.01),
+    valueLabel: (p) => acLabel(p, "A"),
+    create: (c) => [currentSource(c, acWave(c.props))],
+    reference: "n",
+  },
+  {
+    id: "irail-ac",
+    name: "AC current rail",
+    group: "sources",
+    keywords: ["sine", "square", "signal", "single terminal"],
+    terminals: RAIL,
+    bounds: { w: 40, h: 40 },
+    fields: acFields("A", 0.01),
+    valueLabel: (p) => acLabel(p, "A"),
+    create: (c) => [currentSource(c, acWave(c.props))],
     grounded: true,
   },
   {
@@ -84,6 +162,60 @@ const specs: PartSpec[] = [
     fields: [{ key: "r", label: "Resistance", kind: "number", unit: "Ω", default: 1000, positive: true }],
     valueLabel: (p) => formatSI(num(p, "r"), "Ω"),
     create: (c) => [resistor(c, num(c.props, "r"))],
+  },
+  {
+    id: "capacitor",
+    name: "Capacitor",
+    group: "passive",
+    terminals: TWO_TERMINAL,
+    bounds: { w: 60, h: 30 },
+    fields: [
+      { key: "c", label: "Capacitance", kind: "number", unit: "F", default: 10e-6, positive: true },
+      { key: "v0", label: "Starting voltage (A − B)", kind: "number", unit: "V", default: 0 },
+    ],
+    valueLabel: (p) => formatSI(num(p, "c"), "F"),
+    create: (c) => [capacitor(c, num(c.props, "c"), num(c.props, "v0"))],
+  },
+  {
+    id: "inductor",
+    name: "Inductor",
+    group: "passive",
+    keywords: ["coil", "choke"],
+    terminals: TWO_TERMINAL,
+    bounds: { w: 60, h: 20 },
+    fields: [
+      { key: "l", label: "Inductance", kind: "number", unit: "H", default: 1, positive: true },
+      { key: "i0", label: "Starting current (A → B)", kind: "number", unit: "A", default: 0 },
+    ],
+    valueLabel: (p) => formatSI(num(p, "l"), "H"),
+    create: (c) => [inductor(c, num(c.props, "l"), num(c.props, "i0"))],
+  },
+  {
+    id: "transformer",
+    name: "Transformer",
+    group: "passive",
+    keywords: ["coupled", "mutual", "coil"],
+    terminals: [
+      { id: "p1", name: "Primary •", x: -30, y: -20 },
+      { id: "p2", name: "Primary", x: -30, y: 20 },
+      { id: "s1", name: "Secondary •", x: 30, y: -20 },
+      { id: "s2", name: "Secondary", x: 30, y: 20 },
+    ],
+    bounds: { w: 60, h: 60 },
+    fields: [
+      { key: "l1", label: "Primary inductance", kind: "number", unit: "H", default: 4, positive: true },
+      {
+        key: "ratio",
+        label: "Turns ratio N1 : N2",
+        kind: "number",
+        default: 1,
+        positive: true,
+        help: "2 steps the voltage down by 2. The dotted ends rise together.",
+      },
+      { key: "k", label: "Coupling k", kind: "number", default: 0.999, min: 0.01, max: 0.9999, positive: true },
+    ],
+    valueLabel: (p) => `${formatSI(num(p, "ratio"))}:1`,
+    create: (c) => [transformer(c, num(c.props, "l1"), num(c.props, "ratio"), num(c.props, "k"))],
   },
   {
     id: "switch",
@@ -132,7 +264,10 @@ const specs: PartSpec[] = [
     keywords: ["voltmeter", "measure", "scope", "label"],
     terminals: [{ id: "in", name: "Node", x: 0, y: 20 }],
     bounds: { w: 30, h: 40 },
-    fields: [{ key: "name", label: "Name", kind: "text", default: "" }],
+    fields: [
+      { key: "name", label: "Name", kind: "text", default: "" },
+      { key: "plot", label: "Plot on the scope", kind: "bool", default: true },
+    ],
     valueLabel: (p) => String(p.name),
   },
   {

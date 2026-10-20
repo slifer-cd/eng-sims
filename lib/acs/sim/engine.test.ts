@@ -97,6 +97,24 @@ describe("DC circuits", () => {
   });
 });
 
+describe("measure", () => {
+  it("measures a part's voltage, current or power, and a probe's node voltage", () => {
+    const b = new CircuitBuilder();
+    const v = b.add("vdc", { v: 6 }), r = b.add("resistor", { r: 2e3 }), g = b.add("ground"), p = b.add("probe");
+    b.wire([v, "p"], [r, "a"]);
+    b.wire([r, "b"], [g, "g"]);
+    b.wire([v, "n"], [g, "g"]);
+    b.wire([p, "in"], [r, "a"]);
+    const e = engineFor(b);
+    expect(e.measure(r, "v")).toBeCloseTo(6, 6);
+    expect(e.measure(r, "i")).toBeCloseTo(3e-3, 9);
+    expect(e.measure(r, "p")).toBeCloseTo(18e-3, 9);
+    expect(e.measure(p, "v")).toBeCloseTo(6, 6);
+    expect(e.measure(p, "i")).toBeUndefined();
+    expect(e.measure("gone", "v")).toBeUndefined();
+  });
+});
+
 describe("switches", () => {
   function lamp(closed: boolean) {
     const b = new CircuitBuilder();
@@ -217,6 +235,13 @@ describe("time", () => {
     const e = new Engine(compileCircuit(divider().circuit), { settings: { dt: 1e-5 } });
     expect(e.run(1e-3, 1000)).toEqual({ steps: 100, behind: false });
     expect(e.time).toBeCloseTo(1e-3, 12);
+  });
+
+  it("calls back after every step it runs", () => {
+    const e = new Engine(compileCircuit(divider().circuit), { settings: { dt: 1e-5 } });
+    const times: number[] = [];
+    e.run(5e-5, 1000, undefined, () => times.push(e.time));
+    expect(times.map((t) => Math.round(t * 1e5))).toEqual([1, 2, 3, 4, 5]);
   });
 
   it("gives up on the rest of a frame when out of time", () => {

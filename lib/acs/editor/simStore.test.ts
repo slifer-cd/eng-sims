@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { CircuitBuilder } from "../../sim/test-utils";
 import { useAcsSettings } from "./settings";
-import { useAcsSim } from "./simStore";
+import { recorder, useAcsSim } from "./simStore";
 
 function lamp(closed = false) {
   const b = new CircuitBuilder();
@@ -47,6 +47,18 @@ describe("simulation store", () => {
     useAcsSim.getState().advance(16);
     expect(useAcsSim.getState().running).toBe(false);
     expect(useAcsSim.getState().engine!.error).not.toBeNull();
+  });
+
+  it("records the scope's traces while running, and forgets them on reset", () => {
+    const { circuit, r } = lamp(true);
+    useAcsSim.getState().rebuild(circuit);
+    useAcsSim.getState().setScope([{ compId: r, quantity: "i" }], 1e-3);
+    useAcsSim.getState().advance(50);
+    const { ts, ys } = recorder.series(`${r}:i`, -Infinity);
+    expect(ts.length).toBe(5);
+    expect(ys[4]).toBeCloseTo(5e-3, 6);
+    useAcsSim.getState().reset(circuit);
+    expect(recorder.series(`${r}:i`, -Infinity).ts.length).toBe(0);
   });
 
   it("starts over from time 0 on reset", () => {

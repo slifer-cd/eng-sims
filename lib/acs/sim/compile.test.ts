@@ -94,6 +94,21 @@ describe("compileCircuit problems", () => {
     expect(compileCircuit(b.circuit).errors).toEqual([{ message: expect.stringContaining("no path"), compIds: [i] }]);
   });
 
+  it("leaves out a current source that isn't wired to anything yet", () => {
+    const b = new CircuitBuilder();
+    const i = b.add("idc"), rail = b.add("irail-ac"), v = b.add("vdc"), r = b.add("resistor"), g = b.add("ground");
+    b.wire([v, "p"], [r, "a"]);
+    b.wire([r, "b"], [g, "g"]);
+    b.wire([v, "n"], [g, "g"]);
+    const n = compileCircuit(b.circuit);
+    expect(n.errors).toEqual([]);
+    expect(n.elements.some((e) => e.compId === i || e.compId === rail)).toBe(false);
+    expect(n.warnings).toEqual([
+      { message: expect.stringContaining("not connected"), compIds: [i] },
+      { message: expect.stringContaining("not connected"), compIds: [rail] },
+    ]);
+  });
+
   it("accepts a current source driving a resistor", () => {
     const b = new CircuitBuilder();
     const i = b.add("idc"), r = b.add("resistor"), g = b.add("ground");

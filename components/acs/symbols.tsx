@@ -81,6 +81,145 @@ function Label(props: { x: number; y: number; upright: string; className: string
   );
 }
 
+function Capacitor({ lead }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={-30} y1={0} x2={-4} y2={0} color={lead("a")} />
+      <Lead x1={4} y1={0} x2={30} y2={0} color={lead("b")} />
+      <line x1={-4} y1={-12} x2={-4} y2={12} style={{ stroke: lead("a") }} strokeWidth={3} />
+      <line x1={4} y1={-12} x2={4} y2={12} style={{ stroke: lead("b") }} strokeWidth={3} />
+    </>
+  );
+}
+
+/** Coil humps from x0 to x1 along y = 0, bulging up (towards −y). */
+function humps(x0: number, x1: number, n: number) {
+  const w = (x1 - x0) / n;
+  let d = `M${x0} 0`;
+  for (let i = 0; i < n; i++) d += ` a${w / 2} ${w / 2} 0 0 1 ${w} 0`;
+  return d;
+}
+
+function Inductor({ style, lead, uid }: SymbolProps) {
+  const a = lead("a"), b = lead("b");
+  const grad = `${uid}-l`;
+  return (
+    <>
+      <AlongX id={grad} from={a} to={b} x1={-20} x2={20} />
+      <Lead x1={-30} y1={0} x2={-20} y2={0} color={a} />
+      <Lead x1={20} y1={0} x2={30} y2={0} color={b} />
+      {style === "iec" ? (
+        <rect x={-18} y={-6} width={36} height={12} rx={1} style={{ fill: `url(#${grad})` }} stroke={`url(#${grad})`} strokeWidth={2} />
+      ) : (
+        <path d={humps(-20, 20, 4)} fill="none" stroke={`url(#${grad})`} strokeWidth={2} strokeLinecap="round" />
+      )}
+    </>
+  );
+}
+
+/** A vertical coil from y = −20 to 20 at x, its humps facing away from the core. */
+function VerticalCoil({ x, side, color }: { x: number; side: 1 | -1; color: string }) {
+  let d = `M${x} -20`;
+  for (let i = 0; i < 4; i++) d += ` a5 5 0 0 ${side > 0 ? 1 : 0} 0 10`;
+  return <path d={d} fill="none" style={{ stroke: color }} strokeWidth={2} strokeLinecap="round" />;
+}
+
+function Transformer({ lead }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={-30} y1={-20} x2={-10} y2={-20} color={lead("p1")} />
+      <Lead x1={-30} y1={20} x2={-10} y2={20} color={lead("p2")} />
+      <Lead x1={30} y1={-20} x2={10} y2={-20} color={lead("s1")} />
+      <Lead x1={30} y1={20} x2={10} y2={20} color={lead("s2")} />
+      <VerticalCoil x={-10} side={-1} color={lead("p1")} />
+      <VerticalCoil x={10} side={1} color={lead("s1")} />
+      <line x1={-2} y1={-22} x2={-2} y2={22} className={BODY} strokeWidth={1.5} />
+      <line x1={2} y1={-22} x2={2} y2={22} className={BODY} strokeWidth={1.5} />
+      <circle cx={-20} cy={-27} r={2.2} className="fill-chip-stroke" />
+      <circle cx={20} cy={-27} r={2.2} className="fill-chip-stroke" />
+    </>
+  );
+}
+
+/** One cycle of a waveform, `w` wide and `h` tall, centred on the origin. */
+function wavePath(shape: string, w: number, h: number) {
+  const x0 = -w / 2, q = w / 4;
+  switch (shape) {
+    case "square":
+      return `M${x0} 0 V${-h / 2} H0 V${h / 2} H${w / 2} V0`;
+    case "triangle":
+      return `M${x0} 0 L${x0 + q} ${-h / 2} L${x0 + 3 * q} ${h / 2} L${w / 2} 0`;
+    case "sawtooth":
+      return `M${x0} 0 L0 ${-h / 2} V${h / 2} L${w / 2} 0`;
+    default:
+      return `M${x0} 0 C${x0 + q * 0.6} ${-h * 0.66} ${-q * 0.6} ${-h * 0.66} 0 0 S${w / 2 - q * 0.6} ${h * 0.66} ${w / 2} 0`;
+  }
+}
+
+function Wave({ shape, w, h, y = 0 }: { shape: unknown; w: number; h: number; y?: number }) {
+  return (
+    <path
+      d={wavePath(String(shape), w, h)}
+      transform={`translate(0 ${y})`}
+      fill="none"
+      className={BODY}
+      strokeWidth={1.5}
+      strokeLinejoin="round"
+    />
+  );
+}
+
+function AcSource({ lead, props, upright }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={0} y1={-30} x2={0} y2={-14} color={lead("p")} />
+      <Lead x1={0} y1={14} x2={0} y2={30} color={lead("n")} />
+      <circle r={14} className={`fill-chip ${BODY}`} strokeWidth={1.5} />
+      <Wave shape={props.waveform} w={16} h={10} />
+      <Label x={-12} y={-19} upright={upright} className="fill-chip-text text-[10px]">
+        +
+      </Label>
+    </>
+  );
+}
+
+function AcRail({ lead, props }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={0} y1={20} x2={0} y2={2} color={lead("p")} />
+      <circle cy={-8} r={10} className={`fill-chip ${BODY}`} strokeWidth={1.5} />
+      <Wave shape={props.waveform} w={12} h={8} y={-8} />
+    </>
+  );
+}
+
+function AcCurrentSource({ lead, props }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={0} y1={-30} x2={0} y2={-14} color={lead("p")} />
+      <Lead x1={0} y1={14} x2={0} y2={30} color={lead("n")} />
+      <circle r={14} className={`fill-chip ${BODY}`} strokeWidth={1.5} />
+      <CurrentArrow y0={8} y1={-8} />
+      <g transform="translate(8 0) scale(0.5)">
+        <Wave shape={props.waveform} w={14} h={10} />
+      </g>
+    </>
+  );
+}
+
+function AcCurrentRail({ lead, props }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={0} y1={20} x2={0} y2={2} color={lead("p")} />
+      <circle cy={-8} r={10} className={`fill-chip ${BODY}`} strokeWidth={1.5} />
+      <CurrentArrow y0={-14} y1={-1} />
+      <g transform="translate(6 -8) scale(0.45)">
+        <Wave shape={props.waveform} w={14} h={10} />
+      </g>
+    </>
+  );
+}
+
 function Battery({ lead, upright }: SymbolProps) {
   return (
     <>
@@ -217,6 +356,13 @@ function Unknown() {
 
 const SYMBOLS: Record<string, (p: SymbolProps) => ReactNode> = {
   resistor: Resistor,
+  capacitor: Capacitor,
+  inductor: Inductor,
+  transformer: Transformer,
+  vac: AcSource,
+  "vrail-ac": AcRail,
+  iac: AcCurrentSource,
+  "irail-ac": AcCurrentRail,
   vdc: Battery,
   idc: CurrentSource,
   "vrail-dc": VoltageRail,

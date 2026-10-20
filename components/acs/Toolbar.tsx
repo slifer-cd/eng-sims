@@ -12,6 +12,7 @@ import {
   Redo2,
   RotateCcw,
   RotateCw,
+  Settings2,
   StepForward,
   Trash2,
   Undo2,
@@ -20,11 +21,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SPEEDS, useAcsSettings } from "@/lib/acs/editor/settings";
+import { MAX_DT, MIN_DT, SPEEDS, useAcsSettings } from "@/lib/acs/editor/settings";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
-import { formatSI } from "@/lib/acs/units";
+import { formatSI, parseSI } from "@/lib/acs/units";
 import { newCircuit } from "./actions";
+import { TextField } from "./TextField";
 
 function ToolButton(props: { title: string; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
@@ -135,6 +137,7 @@ function SimControls() {
           </option>
         ))}
       </select>
+      <SimSettings />
       <span className="ml-2 shrink-0 font-mono text-xs text-muted tabular-nums" title="Simulated time since reset">
         t = {formatSI(engine?.time ?? 0, "s")}
       </span>
@@ -155,6 +158,61 @@ function SimControls() {
           </span>
         )
       )}
+    </>
+  );
+}
+
+/** Time step and integration method, in a popover. */
+function SimSettings() {
+  const dt = useAcsSettings((s) => s.dt);
+  const method = useAcsSettings((s) => s.method);
+  const update = useAcsSettings((s) => s.update);
+  return (
+    <>
+      <button
+        type="button"
+        popoverTarget="acs-sim-settings"
+        title="Simulation settings"
+        aria-label="Simulation settings"
+        className="ml-1 shrink-0 rounded-md p-1.5 hover:bg-hover"
+      >
+        <Settings2 size={16} />
+      </button>
+      <div
+        id="acs-sim-settings"
+        popover="auto"
+        className="m-auto w-72 rounded-lg border border-line bg-panel p-4 text-sm text-foreground shadow-lg backdrop:bg-black/10"
+      >
+        <h2 className="mb-3 font-semibold">Simulation settings</h2>
+        <div className="grid gap-3">
+          <TextField
+            label="Time step"
+            help={`Smaller is more accurate but slower. Use at most 1/50 of the fastest period. Between ${formatSI(MIN_DT, "s")} and ${formatSI(MAX_DT, "s")}.`}
+            value={formatSI(dt, "s", 6)}
+            parse={(raw) => {
+              const v = parseSI(raw);
+              return v !== null && v >= MIN_DT && v <= MAX_DT ? v : null;
+            }}
+            onCommit={(_, v) => {
+              if (v !== dt) update({ dt: v! });
+            }}
+          />
+          <label className="grid gap-1">
+            <span className="text-xs text-muted">Integration</span>
+            <select
+              value={method}
+              onChange={(e) => update({ method: e.target.value as "trap" | "be" })}
+              className="rounded-md border border-line bg-canvas px-2 py-1 outline-none focus:border-accent"
+            >
+              <option value="trap">Trapezoidal (accurate)</option>
+              <option value="be">Backward Euler (damped, steady)</option>
+            </select>
+            <span className="text-xs text-muted">
+              Trapezoidal keeps oscillations alive; backward Euler damps them but never rings on sudden jumps.
+            </span>
+          </label>
+        </div>
+      </div>
     </>
   );
 }

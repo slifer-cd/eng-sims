@@ -9,9 +9,11 @@ export interface AcsSettings {
   /** Simulation time step, in seconds. */
   dt: number;
   speed: number;
+  /** Integration for capacitors and inductors: trapezoidal or backward Euler. */
+  method: "trap" | "be";
 }
 
-export const DEFAULT_SETTINGS: AcsSettings = { dt: 5e-6, speed: 1e-2 };
+export const DEFAULT_SETTINGS: AcsSettings = { dt: 5e-6, speed: 1e-2, method: "trap" };
 
 /** Settings from a draft, each bad or missing field replaced by its default. */
 export function repairSettings(raw: unknown): AcsSettings {
@@ -20,6 +22,7 @@ export function repairSettings(raw: unknown): AcsSettings {
   return {
     dt: inRange(r.dt, MIN_DT, MAX_DT) ? r.dt : DEFAULT_SETTINGS.dt,
     speed: inRange(r.speed, SPEEDS[0], SPEEDS[SPEEDS.length - 1]) ? r.speed : DEFAULT_SETTINGS.speed,
+    method: r.method === "trap" || r.method === "be" ? r.method : DEFAULT_SETTINGS.method,
   };
 }
 
