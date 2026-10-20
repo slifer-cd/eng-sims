@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { type Netlist, compileCircuit } from "./compile";
 import { type Element, GROUND } from "./element";
 import { Engine } from "./engine";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { compileCircuit } from "./compile";
 import { GROUND } from "./element";
 
@@ -17,6 +17,36 @@ describe("compileCircuit nodes", () => {
     expect(node(n, r3, "a")).toBe(node(n, r2, "a"));
     expect(node(n, r1, "a")).not.toBe(node(n, r2, "a"));
     expect(node(n, r2, "b")).toBe(GROUND);
+  });
+
+  it("joins terminals that sit on the same point, without a wire", () => {
+    // r1's B end is at (30, 0) and r2's A end is at (30, 0); r3 is nearby but not touching.
+    const b = new CircuitBuilder();
+    const r1 = b.add("resistor", {}, undefined, { x: 0, y: 0 });
+    const r2 = b.add("resistor", {}, undefined, { x: 60, y: 0 });
+    const r3 = b.add("resistor", {}, undefined, { x: 70, y: 40 });
+    const n = compileCircuit(b.circuit);
+    expect(node(n, r1, "b")).toBe(node(n, r2, "a"));
+    expect(node(n, r3, "a")).not.toBe(node(n, r1, "b"));
+    expect(node(n, r1, "a")).not.toBe(node(n, r1, "b"));
+  });
+
+  it("joins turned and flipped parts by where their terminals end up", () => {
+    // A ground right on a resistor's B end, and a resistor turned upright whose top is there too.
+    const b = new CircuitBuilder();
+    const r = b.add("resistor", {}, undefined, { x: 0, y: 0 });
+    const g = b.add("ground", {}, undefined, { x: 30, y: 10 });
+    const up = b.add("resistor", {}, undefined, { x: 30, y: 30 });
+    b.circuit.components.find((c) => c.id === up)!.rotation = 90;
+    const sw = b.add("switch2", {}, undefined, { x: -60, y: -10 });
+    b.circuit.components.find((c) => c.id === sw)!.flip = true;
+    const n = compileCircuit(b.circuit);
+    expect(node(n, r, "b")).toBe(GROUND);
+    expect(node(n, up, "a")).toBe(GROUND);
+    expect(node(n, g, "g")).toBe(GROUND);
+    // Flipped, the switch's B throw is at (−30, −20) and its A throw at (−30, 0): r's A end.
+    expect(node(n, sw, "a")).toBe(node(n, r, "a"));
+    expect(node(n, sw, "b")).not.toBe(node(n, r, "a"));
   });
 
   it("joins net labels by name", () => {

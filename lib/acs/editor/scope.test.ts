@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { compileCircuit } from "../sim/compile";
 import { Engine } from "../sim/engine";
 import { Recorder, TraceBuffer, activeTraces, autoWindow, repairScope, sampleAt } from "./scope";

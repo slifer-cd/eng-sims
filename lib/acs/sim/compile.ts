@@ -1,6 +1,7 @@
 import type { Circuit, ComponentInst, Endpoint } from "../../model/types";
 import { UnionFind } from "../../model/unionFind";
 import { pinKey, wireKey } from "../../sim/compile";
+import { pointKey, terminalWorld } from "../geometry";
 import { type PartSpec, getPart, partProps } from "../parts";
 import { type Element, GROUND } from "./element";
 import { type Problem, findProblems } from "./validate";
@@ -30,6 +31,7 @@ export interface Netlist {
 }
 
 const GROUND_KEY = "#ground";
+const spotKey = (point: string) => `#at:${point}`;
 const labelKey = (name: string) => `#label:${name}`;
 
 const displayName = (comp: ComponentInst, spec: PartSpec) => comp.label || spec.name;
@@ -51,7 +53,14 @@ export function compileCircuit(circuit: Circuit): Netlist {
     }
     placed.push({ comp, spec });
     parts.set(comp.id, spec.id);
-    for (const t of spec.terminals) uf.add(pinKey("", comp.id, t.id));
+    for (const t of spec.terminals) {
+      const k = pinKey("", comp.id, t.id);
+      uf.add(k);
+      // Terminals on the same point are connected, wire or not.
+      const spot = spotKey(pointKey(terminalWorld(comp, t)));
+      uf.add(spot);
+      uf.union(k, spot);
+    }
     if (spec.id === "ground") uf.union(pinKey("", comp.id, "g"), GROUND_KEY);
     if (spec.id === "netlabel") {
       const name = String(partProps(spec, comp.props).name).trim();

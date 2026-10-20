@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Circuit } from "../../model/types";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { compileCircuit } from "./compile";
 import { GROUND } from "./element";
 import { Engine } from "./engine";

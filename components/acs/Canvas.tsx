@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { voltColor } from "@/lib/acs/editor/colors";
 import { wireFlows } from "@/lib/acs/editor/currents";
+import { pointKey } from "@/lib/acs/geometry";
 import { useAcsSettings } from "@/lib/acs/editor/settings";
 import { type MovePreview, type PartItem, type Scene, buildScene, partItem } from "@/lib/acs/editor/scene";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
@@ -130,9 +131,22 @@ export function Canvas() {
     for (const w of circuit.wires) for (const e of [w.a, w.b]) if (e.kind === "pin") keys.add(`${e.compId}.${e.pinId}`);
     return keys;
   }, [circuit.wires]);
+  // Points where two or more terminals touch: connected without a wire.
+  const touching = useMemo(() => {
+    const at = new Map<string, { point: Point; compId: string; pinId: string; n: number }>();
+    for (const c of scene.comps.values()) {
+      for (const [pinId, point] of c.terminals) {
+        const k = pointKey(point);
+        const spot = at.get(k);
+        if (spot) spot.n++;
+        else at.set(k, { point, compId: c.comp.id, pinId, n: 1 });
+      }
+    }
+    return new Map([...at].filter(([, spot]) => spot.n > 1));
+  }, [scene]);
   const openPins = (item: PartItem) =>
     item.spec?.terminals
-      .filter((t) => !wired.has(`${item.comp.id}.${t.id}`))
+      .filter((t) => !wired.has(`${item.comp.id}.${t.id}`) && !touching.has(pointKey(item.terminals.get(t.id)!)))
       .map((t) => t.id)
       .join(",");
   const errorComps = new Set(engine?.error?.compIds ?? []);
@@ -386,6 +400,16 @@ export function Canvas() {
               error={errorComps.has(c.comp.id)}
               openPins={openPins(c)}
               {...liveLook(engine, c, range)}
+            />
+          ))}
+          {[...touching.values()].map((spot) => (
+            <circle
+              key={pointKey(spot.point)}
+              cx={spot.point.x}
+              cy={spot.point.y}
+              r={4}
+              style={{ fill: voltColor(engine?.pinVoltage(spot.compId, spot.pinId), range) }}
+              pointerEvents="none"
             />
           ))}
           {drawing && <WirePreview points={[drawing.start, ...drawing.points, ...(cursor ? [cursor] : [])]} />}

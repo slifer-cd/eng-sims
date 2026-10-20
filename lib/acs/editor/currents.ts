@@ -1,4 +1,5 @@
 import type { Endpoint, Point } from "../../model/types";
+import { pointKey } from "../geometry";
 import type { Scene } from "./scene";
 
 /*
@@ -62,8 +63,20 @@ function slice(points: Point[], cum: number[], s0: number, s1: number): Point[] 
 }
 
 export function wireFlows(scene: Scene, currentInto: CurrentInto): WireFlow[] {
-  const vertexOf = (e: Endpoint, wireId: string, end: "a" | "b") =>
-    e.kind === "pin" ? `p:${e.compId}.${e.pinId}` : `j:${wireId}:${end}`;
+  // Terminals on the same point are one vertex: they are connected without a wire.
+  const spots = new Map<string, { compId: string; pinId: string }[]>();
+  for (const { comp, terminals } of scene.comps.values()) {
+    for (const [pinId, at] of terminals) {
+      const k = pointKey(at);
+      if (!spots.has(k)) spots.set(k, []);
+      spots.get(k)!.push({ compId: comp.id, pinId });
+    }
+  }
+  const vertexOf = (e: Endpoint, wireId: string, end: "a" | "b") => {
+    if (e.kind === "wire") return `j:${wireId}:${end}`;
+    const at = scene.comps.get(e.compId)?.terminals.get(e.pinId);
+    return at ? `p:${pointKey(at)}` : `p?:${e.compId}.${e.pinId}`;
+  };
 
   // Where other wires join each wire.
   const joins = new Map<string, { vertex: string; at: Point }[]>();
@@ -105,11 +118,13 @@ export function wireFlows(scene: Scene, currentInto: CurrentInto): WireFlow[] {
       if (!neighbours.has(a)) neighbours.set(a, []);
       neighbours.get(a)!.push({ to: b, piece: index });
       if (!inflow.has(a)) {
-        if (a.startsWith("p:")) {
-          const [compId, pinId] = a.slice(2).split(".");
-          const into = currentInto(compId, pinId);
-          inflow.set(a, into === undefined ? undefined : -into);
-        } else inflow.set(a, 0);
+        // What the terminals there send out; undefined if one of them is ground or a label.
+        let out: number | undefined = 0;
+        for (const t of a.startsWith("p:") ? (spots.get(a.slice(2)) ?? []) : []) {
+          const into = currentInto(t.compId, t.pinId);
+          out = into === undefined || out === undefined ? undefined : out - into;
+        }
+        inflow.set(a, out);
       }
     }
   });

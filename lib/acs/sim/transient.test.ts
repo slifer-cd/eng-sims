@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Props } from "../../model/types";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { compileCircuit } from "./compile";
 import { Engine, type SimSettings } from "./engine";
 import { waveform } from "./elements/sources";

@@ -1,7 +1,8 @@
-import { projectOntoPolyline, rotate } from "../../editor/layout";
+import { projectOntoPolyline } from "../../editor/layout";
 import { internalWireIds } from "../../editor/ops";
 import type { MovePreview } from "../../editor/scene";
 import type { Circuit, ComponentInst, Endpoint, Point, Props, Wire } from "../../model/types";
+import { terminalWorld } from "../geometry";
 import { type PartSpec, getPart, partProps } from "../parts";
 
 export type { MovePreview } from "../../editor/scene";
@@ -30,11 +31,7 @@ export interface Scene {
 
 const UNKNOWN_SIZE = { w: 40, h: 40 };
 
-/** World position of a point given in a part's own coordinates: mirrored (if flipped), then rotated. */
-export function terminalWorld(comp: Pick<ComponentInst, "x" | "y" | "rotation" | "flip">, local: Point): Point {
-  const r = rotate(comp.flip ? { x: local.x, y: -local.y } : local, comp.rotation);
-  return { x: comp.x + r.x, y: comp.y + r.y };
-}
+export { terminalWorld } from "../geometry";
 
 export function partItem(comp: ComponentInst): PartItem {
   const spec = getPart(comp.chipId);

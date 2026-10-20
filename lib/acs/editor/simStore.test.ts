@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { CircuitBuilder } from "../../sim/test-utils";
+import { CircuitBuilder } from "../test-utils";
 import { useAcsSettings } from "./settings";
 import { recorder, useAcsSim } from "./simStore";
 

@@ -56,6 +56,18 @@ describe("wireFlows", () => {
     expect(flow.current).toBeCloseTo(0.5, 12);
   });
 
+  it("treats terminals on the same point as one", () => {
+    // r1 and r2 touch at (30, 0); a wire goes from there to ground. r1 sends 3 A in, r2 takes
+    // 1 A straight from the shared point, so 2 A run down the wire.
+    const c: Circuit = {
+      components: [part("r1", "resistor", 0, 0), part("r2", "resistor", 60, 0), part("g", "ground", 30, 40)],
+      wires: [{ id: "w1", a: pin("r2", "a"), b: pin("g", "g"), points: [] }],
+    };
+    const into: Record<string, number> = { "r1.b": -3, "r2.a": 1 };
+    const [flow] = wireFlows(buildScene(c), (cid, p) => (cid === "g" ? undefined : (into[`${cid}.${p}`] ?? 0)));
+    expect(flow.current).toBeCloseTo(2, 12);
+  });
+
   it("carries nothing round a loop of wire with nothing on it", () => {
     const c = tee();
     c.wires.push({ id: "w3", a: pin("r1", "b"), b: pin("r2", "a"), points: [{ x: 30, y: 40 }, { x: 170, y: 40 }] });
