@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { restoreAcsSession, saveAcsDraft } from "@/lib/acs/editor/draft";
 import { activeTraces, autoWindow, useAcsScope } from "@/lib/acs/editor/scope";
+import { partShortcut, shortcutFor } from "@/lib/acs/editor/shortcuts";
 import { useAcsSettings } from "@/lib/acs/editor/settings";
 import { useAcsSim } from "@/lib/acs/editor/simStore";
 import { useAcsEditor } from "@/lib/acs/editor/store";
@@ -47,38 +48,61 @@ function usePersistence() {
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      const typing = document.activeElement?.matches("input, textarea, select") ?? false;
+      const action = shortcutFor(e, typing);
+      const part = action ? null : partShortcut(e, typing);
+      if (part) {
+        // Pick the part up: it follows the cursor until a click puts it down.
+        e.preventDefault();
+        useAcsEditor.getState().setPlacing({ partId: part, fromDrag: false });
+        return;
+      }
+      if (!action) return;
+      e.preventDefault();
       const s = useAcsEditor.getState();
       const sim = useAcsSim.getState();
-      const mod = e.ctrlKey || e.metaKey;
-      const key = e.key.toLowerCase();
-      if (mod && key === "s") {
-        // The draft saves itself; never the browser's "save page".
-        e.preventDefault();
-        return;
+      switch (action) {
+        case "save":
+          // The draft saves itself; this only keeps the browser's "save page" away.
+          break;
+        case "new":
+          (document.activeElement as HTMLElement | null)?.blur();
+          newCircuit();
+          break;
+        case "undo":
+          s.undo();
+          break;
+        case "redo":
+          s.redo();
+          break;
+        case "copy":
+          s.copySelection();
+          break;
+        case "paste":
+          s.paste();
+          break;
+        case "selectAll":
+          s.selectAll();
+          break;
+        case "rotate":
+          s.rotateSelection();
+          break;
+        case "flip":
+          s.flipSelection();
+          break;
+        case "delete":
+          s.deleteSelection();
+          break;
+        case "cancel":
+          s.cancel();
+          break;
+        case "run":
+          if (!sim.engine?.error) sim.setRunning(!sim.running);
+          break;
+        case "step":
+          sim.step();
+          break;
       }
-      // Matched by key code because Alt+N types a character on macOS.
-      if (e.altKey && !mod && e.code === "KeyN") {
-        e.preventDefault();
-        (document.activeElement as HTMLElement | null)?.blur();
-        newCircuit();
-        return;
-      }
-      if (document.activeElement?.matches("input, textarea, select")) return;
-      let handled = true;
-      if (mod && key === "z") (e.shiftKey ? s.redo : s.undo)();
-      else if (mod && key === "y") s.redo();
-      else if (mod && key === "c") s.copySelection();
-      else if (mod && key === "v") s.paste();
-      else if (mod && key === "a") s.selectAll();
-      else if (!mod && key === "r") s.rotateSelection();
-      else if (!mod && key === "f") s.flipSelection();
-      else if (key === "delete" || key === "backspace") s.deleteSelection();
-      else if (key === "escape") s.cancel();
-      else if (mod && key === "enter") {
-        if (!sim.engine?.error) sim.setRunning(!sim.running);
-      } else if (mod && key === ".") sim.step();
-      else handled = false;
-      if (handled) e.preventDefault();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

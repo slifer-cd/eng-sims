@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp, Search } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
 import { WIRE_IDLE } from "@/lib/acs/editor/colors";
 import { useAcsSettings } from "@/lib/acs/editor/settings";
+import { partKeyLabel } from "@/lib/acs/editor/shortcuts";
 import { useAcsEditor } from "@/lib/acs/editor/store";
 import { GROUP_TITLES, PARTS, type PartGroup, type PartSpec, partProps } from "@/lib/acs/parts";
 import { PartSymbol } from "./symbols";
@@ -108,10 +109,12 @@ function PartIcon({ spec }: { spec: PartSpec }) {
 function PlaceButton({ spec }: { spec: PartSpec }) {
   const active = useAcsEditor((s) => s.placing?.partId === spec.id);
   const setPlacing = useAcsEditor((s) => s.setPlacing);
+  const key = partKeyLabel(spec.id);
   return (
     <button
       type="button"
-      title={PLACE_HINT}
+      title={key ? `${PLACE_HINT} Key: ${key}.` : PLACE_HINT}
+      aria-keyshortcuts={key}
       className={`flex min-w-0 items-center gap-2 rounded-md px-2 py-1 text-left select-none ${
         active ? "bg-accent text-white" : "hover:bg-hover"
       }`}
@@ -124,6 +127,11 @@ function PlaceButton({ spec }: { spec: PartSpec }) {
     >
       <PartIcon spec={spec} />
       <span className="truncate">{spec.name}</span>
+      {key && (
+        <kbd className={`ml-auto shrink-0 font-mono text-[10px] ${active ? "text-white/80" : "text-muted"}`}>
+          {key.replace("Shift+", "⇧")}
+        </kbd>
+      )}
     </button>
   );
 }

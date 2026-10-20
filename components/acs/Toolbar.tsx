@@ -81,10 +81,10 @@ export function Toolbar() {
         <Redo2 size={16} />
       </ToolButton>
       <Divider />
-      <ToolButton title="Rotate (R)" onClick={s.rotateSelection} disabled={!s.selection.comps.length}>
+      <ToolButton title="Rotate (Alt+R)" onClick={s.rotateSelection} disabled={!s.selection.comps.length}>
         <RotateCw size={16} />
       </ToolButton>
-      <ToolButton title="Flip (F)" onClick={s.flipSelection} disabled={!s.selection.comps.length}>
+      <ToolButton title="Flip (Alt+F)" onClick={s.flipSelection} disabled={!s.selection.comps.length}>
         <FlipVertical2 size={16} />
       </ToolButton>
       <ToolButton title="Delete (Del)" onClick={s.deleteSelection} disabled={!hasSelection}>
