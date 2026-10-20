@@ -2,9 +2,9 @@ import "katex/dist/katex.min.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { AnalogSketch } from "@/components/home/AnalogSketch";
 import { Backdrop } from "@/components/home/Backdrop";
 import { BitsPreview } from "@/components/home/BitsPreview";
+import { CircuitPreview } from "@/components/home/CircuitPreview";
 import { FourierPreview } from "@/components/home/FourierPreview";
 import { LogicPreview } from "@/components/home/LogicPreview";
 import { BUTTON_PRIMARY, GraphPaper, Logo, PANEL } from "@/components/site/Bench";
@@ -12,17 +12,8 @@ import { BUTTON_PRIMARY, GraphPaper, Logo, PANEL } from "@/components/site/Bench
 export const metadata: Metadata = {
   title: "Eng Sims · Simulators for engineers",
   description:
-    "A digital logic simulator, a signals & systems calculator and bits & logic tools that show their work. Free, in your browser, no account.",
+    "A digital logic simulator, an analog circuit simulator, a signals & systems calculator and bits & logic tools that show their work. Free, in your browser, no account.",
 };
-
-/** Tools that are planned but not built yet. */
-const PLANNED = [
-  {
-    name: "Analog circuits",
-    blurb: "Resistors, capacitors and sources, with voltages and currents over time.",
-    sketch: <AnalogSketch />,
-  },
-];
 
 export default function Home() {
   return (
@@ -34,6 +25,7 @@ export default function Home() {
         <Logo />
         <nav aria-label="Main" className="flex gap-1 text-sm">
           <NavLink href="/dls">Logic</NavLink>
+          <NavLink href="/acs">Circuits</NavLink>
           <NavLink href="/sss">Signals</NavLink>
           <NavLink href="/calc">Bits &amp; Logic</NavLink>
         </nav>
@@ -45,8 +37,8 @@ export default function Home() {
             Engineering simulators that show their work.
           </h1>
           <p className="mt-5 max-w-xl text-lg text-pretty text-muted">
-            Wire up digital logic and watch every signal, or type a signal and get the exact transform, step by step. Free, in
-            your browser, no account.
+            Wire up digital logic or analog circuits and watch every signal, or type a signal and get the exact transform, step
+            by step. Free, in your browser, no account.
           </p>
         </section>
 
@@ -58,6 +50,14 @@ export default function Home() {
             facts={["0, 1, Z and X signals", "Buses up to 32 bits", "LEDs, digits and screens"]}
             action="Open the logic simulator"
             preview={<LogicPreview />}
+          />
+          <ToolPanel
+            name="Circuit simulator"
+            route="/acs"
+            blurb="Draw an analog circuit and watch its voltages and currents live, with every part's value yours to set."
+            facts={["DC and AC sources", "R, L, C and switches", "Probes and net labels"]}
+            action="Open the circuit simulator"
+            preview={<CircuitPreview />}
           />
           <ToolPanel
             name="Signals & systems"
@@ -75,9 +75,6 @@ export default function Home() {
             action="Open bits & logic"
             preview={<BitsPreview />}
           />
-          {PLANNED.map((tool) => (
-            <PlannedPanel key={tool.name} {...tool} />
-          ))}
         </section>
 
       </main>
@@ -96,22 +93,6 @@ function NavLink({ href, children }: { href: string; children: ReactNode }) {
     <Link href={href} className="rounded-md px-3 py-1.5 font-medium text-muted transition-colors hover:bg-hover hover:text-foreground">
       {children}
     </Link>
-  );
-}
-
-/** A tool that is drawn in but not built yet: dashed, with a sketch in place of a live preview. */
-function PlannedPanel(props: { name: string; blurb: string; sketch: ReactNode }) {
-  return (
-    <article className="flex flex-col rounded-lg border border-dashed border-grid">
-      <header className="flex items-baseline justify-between gap-3 border-b border-dashed border-grid px-5 py-3">
-        <h2 className="font-semibold text-muted">{props.name}</h2>
-        <span className="text-xs text-muted">Planned</span>
-      </header>
-      <div className="grid flex-1 place-items-center px-5 py-6">
-        <div className="w-full max-w-md opacity-70">{props.sketch}</div>
-      </div>
-      <p className="px-5 pt-1 pb-5 text-pretty text-muted">{props.blurb}</p>
-    </article>
   );
 }
 

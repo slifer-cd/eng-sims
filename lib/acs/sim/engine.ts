@@ -93,6 +93,13 @@ export class Engine {
     return unknown === GROUND ? 0 : this.x[unknown];
   }
 
+  /** Largest |V| over all nodes, e.g. to scale wire colours. */
+  maxVoltage() {
+    let max = 0;
+    for (let i = 0; i < this.netlist.size; i++) if (!this.netlist.isCurrent[i]) max = Math.max(max, Math.abs(this.x[i]));
+    return max;
+  }
+
   pinVoltage(compId: string, terminalId: string) {
     return this.voltage(this.netlist.nodeOf(compId, terminalId));
   }
@@ -100,6 +107,11 @@ export class Engine {
   readout(compId: string): Readout | undefined {
     const e = this.netlist.elements.find((x) => x.compId === compId && x.readout);
     return e?.readout!(this.x);
+  }
+
+  /** A switch's live position, or undefined for other parts. */
+  switchValue(compId: string): SwitchValue | undefined {
+    return this.netlist.elements.find((x) => x.compId === compId && x.switchValue)?.switchValue!();
   }
 
   /** Flip a switch while simulating (not part of the circuit or its undo history). */

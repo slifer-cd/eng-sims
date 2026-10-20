@@ -11,3 +11,5 @@ export const PALETTE_KEY = "eng-sims:palette";
 export const SSS_KEY = "eng-sims:sss";
 /** The Bits & Logic inputs (`/calc`): `{ v: 1, inputs }`. */
 export const CALC_KEY = "eng-sims:calc";
+/** The circuit simulator's canvas and settings (`/acs`): `{ v: 1, circuit, settings }`. */
+export const ACS_KEY = "eng-sims:acs";

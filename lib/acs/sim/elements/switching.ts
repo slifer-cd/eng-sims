@@ -26,6 +26,7 @@ export function spst(c: CreateCtx, initial: boolean): Element {
       closed = value;
       return true;
     },
+    switchValue: () => closed,
     save: () => ({ initial, closed }),
     restore(state) {
       const s = state as { initial?: unknown; closed?: unknown };
@@ -58,6 +59,7 @@ export function spdt(c: CreateCtx, initial: "a" | "b"): Element {
       position = value;
       return true;
     },
+    switchValue: () => position,
     save: () => ({ initial, position }),
     restore(state) {
       const s = state as { initial?: unknown; position?: unknown };

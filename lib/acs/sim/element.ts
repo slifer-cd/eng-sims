@@ -107,6 +107,7 @@ export interface Element {
   readonly currentSource?: boolean;
   /** Switches: set the live position. Returns false if the value doesn't apply. */
   setSwitch?(value: SwitchValue): boolean;
+  switchValue?(): SwitchValue;
   /** State that survives a recompile of the same part. */
   save?(): unknown;
   restore?(state: unknown): void;

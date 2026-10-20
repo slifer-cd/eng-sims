@@ -26,6 +26,10 @@
   --sig-0: #64748b;
   --sig-z: #0284c7;
   --sig-x: #dc2626;
+  /* Circuit simulator voltages: positive, negative and 0 V; wires mix between them. */
+  --volt-pos: #16a34a;
+  --volt-neg: #dc2626;
+  --volt-zero: #7c8aa3;
 
   /* Signals & systems plots: surface, grid, axes and categorical series (CVD-validated). */
   --plot-surface: #fbfcff;
@@ -60,6 +64,9 @@
   --color-sig-0: var(--sig-0);
   --color-sig-z: var(--sig-z);
   --color-sig-x: var(--sig-x);
+  --color-volt-pos: var(--volt-pos);
+  --color-volt-neg: var(--volt-neg);
+  --color-volt-zero: var(--volt-zero);
   --color-plot-surface: var(--plot-surface);
   --color-plot-grid: var(--plot-grid);
   --color-plot-axis: var(--plot-axis);
@@ -95,6 +102,9 @@
     --sig-0: #64748b;
     --sig-z: #38bdf8;
     --sig-x: #f87171;
+    --volt-pos: #4ade80;
+    --volt-neg: #f87171;
+    --volt-zero: #64748b;
 
     --plot-surface: #0e1626;
     --plot-grid: #18233a;

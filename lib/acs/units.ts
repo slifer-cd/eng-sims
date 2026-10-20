@@ -30,15 +30,15 @@ export function parseSI(text: string): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-/** Write a value with an engineering prefix and 3 significant figures: 4700 → "4.7 kΩ". */
-export function formatSI(value: number, unit = ""): string {
+/** Write a value with an engineering prefix and 3 significant figures (or `digits`): 4700 → "4.7 kΩ". */
+export function formatSI(value: number, unit = "", digits = 3): string {
   if (!Number.isFinite(value)) return `${value}${unit ? " " + unit : ""}`;
   const join = (n: number, prefix: string) => (prefix || unit ? `${n} ${prefix}${unit}` : `${n}`);
   if (value === 0) return join(0, "");
   let exp = Math.max(-18, Math.min(12, Math.floor(Math.log10(Math.abs(value)) / 3) * 3));
   const round = (x: number) => {
-    const digits = 3 - (Math.floor(Math.log10(Math.abs(x))) + 1);
-    return Number(x.toFixed(Math.max(0, Math.min(20, digits))));
+    const decimals = digits - (Math.floor(Math.log10(Math.abs(x))) + 1);
+    return Number(x.toFixed(Math.max(0, Math.min(20, decimals))));
   };
   let n = round(value * 10 ** -exp);
   if (Math.abs(n) >= 1000 && exp < 12) {

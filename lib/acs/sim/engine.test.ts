@@ -25,6 +25,15 @@ describe("DC circuits", () => {
     expect(e.pinVoltage(probe, "in")).toBeCloseTo(7.5, 6);
   });
 
+  it("reports the largest node voltage, ignoring branch currents", () => {
+    const b = new CircuitBuilder();
+    const v = b.add("vdc", { v: -12 }), r = b.add("resistor", { r: 0.001 }), g = b.add("ground");
+    b.wire([v, "p"], [r, "a"]);
+    b.wire([r, "b"], [g, "g"]);
+    b.wire([v, "n"], [g, "g"]);
+    expect(engineFor(b).maxVoltage()).toBeCloseTo(12, 6);
+  });
+
   it("solves an unbalanced Wheatstone bridge", () => {
     // Hand solution: A = 80/14.5 V, B = 2.5·A − 10 V. Every node leaks GMIN to ground, so
     // results match to about R·GMIN ≈ 1e-9 relative.
@@ -121,6 +130,15 @@ describe("switches", () => {
     expect(e3.readout(r)!.i).toBeCloseTo(5e-3, 9);
     b.circuit.components.find((c) => c.id === s)!.props.closed = false;
     expect(engineFor(b, e3).readout(r)!.i).toBeCloseTo(0, 9);
+  });
+
+  it("reports where each switch is", () => {
+    const { b, s, r } = lamp(false);
+    const e = engineFor(b);
+    expect(e.switchValue(s)).toBe(false);
+    e.setSwitch(s, true);
+    expect(e.switchValue(s)).toBe(true);
+    expect(e.switchValue(r)).toBeUndefined();
   });
 
   it("throws a two-way switch between its outputs", () => {

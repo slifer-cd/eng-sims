@@ -48,6 +48,11 @@ describe("formatSI", () => {
     expect(formatSI(value, unit)).toBe(text);
   });
 
+  it("writes more digits when asked", () => {
+    expect(formatSI(4753, "Ω", 6)).toBe("4.753 kΩ");
+    expect(formatSI(1 / 3, "V", 6)).toBe("333.333 mV");
+  });
+
   it("round-trips through parseSI", () => {
     for (const v of [1, 4.7e3, 33e-9, 1.5e-3, 0.02, 2.2e6, 1e-14]) {
       expect(parseSI(formatSI(v, "F"))! / v).toBeCloseTo(1, 2);
