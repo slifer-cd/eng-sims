@@ -1,6 +1,8 @@
 import type { Props } from "../../model/types";
 import { formatSI } from "../units";
+import { comparator, opamp } from "../sim/elements/amps";
 import { capacitor, inductor, resistor, transformer } from "../sim/elements/passive";
+import { bjt, diode, fet } from "../sim/elements/semis";
 import { type WaveformProps, currentSource, dc, voltageSource, waveform } from "../sim/elements/sources";
 import { spdt, spst } from "../sim/elements/switching";
 import type { PartSpec, PropField } from "./types";
@@ -44,6 +46,107 @@ const TWO_TERMINAL = [
   { id: "a", name: "A", x: -30, y: 0 },
   { id: "b", name: "B", x: 30, y: 0 },
 ];
+const DIODE_PINS = [
+  { id: "a", name: "Anode", x: -30, y: 0 },
+  { id: "k", name: "Cathode", x: 30, y: 0 },
+];
+const BJT_PINS = [
+  { id: "b", name: "Base", x: -30, y: 0 },
+  { id: "c", name: "Collector", x: 10, y: -30 },
+  { id: "e", name: "Emitter", x: 10, y: 30 },
+];
+const FET_PINS = [
+  { id: "g", name: "Gate", x: -30, y: 0 },
+  { id: "d", name: "Drain", x: 10, y: -30 },
+  { id: "s", name: "Source", x: 10, y: 30 },
+];
+const AMP_PINS = [
+  { id: "minus", name: "− input", x: -30, y: -10 },
+  { id: "plus", name: "+ input", x: -30, y: 10 },
+  { id: "out", name: "Output", x: 30, y: 0 },
+];
+
+const IS_FIELD: PropField = {
+  key: "is",
+  label: "Saturation current Is",
+  kind: "number",
+  unit: "A",
+  default: 1e-14,
+  positive: true,
+  max: 1e-3,
+};
+const N_FIELD: PropField = { key: "n", label: "Emission coefficient n", kind: "number", default: 1, min: 0.5, max: 10, positive: true };
+
+function bjtSpec(id: "npn" | "pnp"): PartSpec {
+  const npn = id === "npn";
+  return {
+    id,
+    name: npn ? "NPN transistor" : "PNP transistor",
+    group: "semis",
+    keywords: ["bjt", "bipolar", "transistor"],
+    terminals: BJT_PINS,
+    bounds: { w: 60, h: 60 },
+    fields: [
+      { key: "beta", label: "Current gain βF", kind: "number", default: 100, positive: true, max: 1e5 },
+      { key: "betaR", label: "Reverse gain βR", kind: "number", default: 1, positive: true, max: 1e5 },
+      IS_FIELD,
+    ],
+    valueLabel: (p) => `β ${formatSI(num(p, "beta"))}`,
+    create: (c) => [bjt(c, npn ? 1 : -1, { is: num(c.props, "is"), bf: num(c.props, "beta"), br: num(c.props, "betaR") })],
+  };
+}
+
+function jfetSpec(id: "njfet" | "pjfet"): PartSpec {
+  const n = id === "njfet";
+  return {
+    id,
+    name: n ? "N-channel JFET" : "P-channel JFET",
+    group: "semis",
+    keywords: ["fet", "jfet", "transistor"],
+    terminals: FET_PINS,
+    bounds: { w: 60, h: 60 },
+    fields: [
+      { key: "idss", label: "Idss (gate at source)", kind: "number", unit: "A", default: 10e-3, positive: true },
+      { key: "vp", label: "Pinch-off |Vp|", kind: "number", unit: "V", default: 2, positive: true },
+      { key: "lambda", label: "Channel-length λ", kind: "number", unit: "/V", default: 0, min: 0, max: 1 },
+    ],
+    valueLabel: (p) => `${formatSI(num(p, "idss"), "A")}`,
+    create(c) {
+      const vp = num(c.props, "vp");
+      const model = { vto: -vp, beta: (2 * num(c.props, "idss")) / (vp * vp), lambda: num(c.props, "lambda"), gateIs: 1e-14 };
+      return [fet(c, n ? 1 : -1, model)];
+    },
+  };
+}
+
+function mosSpec(id: "nmos" | "pmos"): PartSpec {
+  const n = id === "nmos";
+  return {
+    id,
+    name: n ? "N-channel MOSFET" : "P-channel MOSFET",
+    group: "semis",
+    keywords: ["fet", "mosfet", "transistor", "enhancement"],
+    terminals: FET_PINS,
+    bounds: { w: 60, h: 60 },
+    fields: [
+      { key: "vth", label: "Threshold |Vth|", kind: "number", unit: "V", default: 1.5, min: 0 },
+      {
+        key: "beta",
+        label: "Gain β",
+        kind: "number",
+        unit: "A/V²",
+        default: 0.02,
+        positive: true,
+        help: "Id = β/2 · (Vgs − Vth)² in saturation.",
+      },
+      { key: "lambda", label: "Channel-length λ", kind: "number", unit: "/V", default: 0, min: 0, max: 1 },
+    ],
+    valueLabel: (p) => `Vth ${formatSI(num(p, "vth"), "V")}`,
+    create: (c) => [
+      fet(c, n ? 1 : -1, { vto: num(c.props, "vth"), beta: num(c.props, "beta"), lambda: num(c.props, "lambda"), gateIs: 0 }),
+    ],
+  };
+}
 
 const specs: PartSpec[] = [
   {
@@ -216,6 +319,78 @@ const specs: PartSpec[] = [
     ],
     valueLabel: (p) => `${formatSI(num(p, "ratio"))}:1`,
     create: (c) => [transformer(c, num(c.props, "l1"), num(c.props, "ratio"), num(c.props, "k"))],
+  },
+  {
+    id: "diode",
+    name: "Diode",
+    group: "semis",
+    keywords: ["rectifier", "pn"],
+    terminals: DIODE_PINS,
+    bounds: { w: 60, h: 20 },
+    fields: [IS_FIELD, N_FIELD],
+    create: (c) => [diode(c, { is: num(c.props, "is"), n: num(c.props, "n"), vz: 0 })],
+  },
+  {
+    id: "zener",
+    name: "Zener diode",
+    group: "semis",
+    keywords: ["regulator", "breakdown", "reference"],
+    terminals: DIODE_PINS,
+    bounds: { w: 60, h: 20 },
+    fields: [
+      { key: "vz", label: "Breakdown voltage Vz", kind: "number", unit: "V", default: 5.6, positive: true, max: 1000 },
+      IS_FIELD,
+      N_FIELD,
+    ],
+    valueLabel: (p) => formatSI(num(p, "vz"), "V"),
+    create: (c) => [diode(c, { is: num(c.props, "is"), n: num(c.props, "n"), vz: num(c.props, "vz") })],
+  },
+  bjtSpec("npn"),
+  bjtSpec("pnp"),
+  jfetSpec("njfet"),
+  jfetSpec("pjfet"),
+  mosSpec("nmos"),
+  mosSpec("pmos"),
+  {
+    id: "opamp",
+    name: "Op-amp",
+    group: "amps",
+    keywords: ["operational amplifier", "amplifier"],
+    terminals: AMP_PINS,
+    bounds: { w: 60, h: 50 },
+    fields: [
+      { key: "gain", label: "Open-loop gain", kind: "number", default: 1e5, positive: true, max: 1e9 },
+      { key: "vmax", label: "Output high limit", kind: "number", unit: "V", default: 15 },
+      { key: "vmin", label: "Output low limit", kind: "number", unit: "V", default: -15 },
+    ],
+    create: (c) => [opamp(c, { gain: num(c.props, "gain"), vmax: num(c.props, "vmax"), vmin: num(c.props, "vmin") })],
+    grounded: true,
+  },
+  {
+    id: "comparator",
+    name: "Comparator",
+    group: "amps",
+    keywords: ["schmitt", "threshold"],
+    terminals: AMP_PINS,
+    bounds: { w: 60, h: 50 },
+    fields: [
+      { key: "vhigh", label: "Output high", kind: "number", unit: "V", default: 5 },
+      { key: "vlow", label: "Output low", kind: "number", unit: "V", default: 0 },
+      {
+        key: "hysteresis",
+        label: "Hysteresis",
+        kind: "number",
+        unit: "V",
+        default: 0,
+        min: 0,
+        help: "Switches high at +h/2 and low at −h/2 of input difference.",
+      },
+    ],
+    valueLabel: (p) => (num(p, "hysteresis") ? `±${formatSI(num(p, "hysteresis") / 2, "V")}` : ""),
+    create: (c) => [
+      comparator(c, { vhigh: num(c.props, "vhigh"), vlow: num(c.props, "vlow"), hysteresis: num(c.props, "hysteresis") }),
+    ],
+    grounded: true,
   },
   {
     id: "switch",

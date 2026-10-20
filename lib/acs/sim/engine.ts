@@ -1,3 +1,4 @@
+import { formatSI } from "../units";
 import type { Netlist, Problem } from "./compile";
 import { type Element, type Readout, type StepCtx, type SwitchValue, GROUND, Stamper } from "./element";
 import { LU, SingularMatrixError } from "./matrix";
@@ -14,6 +15,15 @@ export const DEFAULT_SETTINGS: SimSettings = { dt: 5e-6, method: "trap" };
 
 /** Leak from every node to ground, so a floating node still has a (tiny) path. */
 const GMIN = 1e-12;
+/** Newton's method: iterations per solve, and when two iterates count as the same. */
+const MAX_ITER = 60;
+const RELTOL = 1e-3;
+const VNTOL = 1e-6;
+const ABSTOL = 1e-9;
+/** Leaks tried, largest first, when Newton's method fails from the last solution (gmin stepping). */
+const GMIN_STEPS = [1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10];
+/** How many times a failing step may be cut in half. */
+const MAX_HALVINGS = 8;
 
 export interface EngineOptions {
   settings?: Partial<SimSettings>;
@@ -35,6 +45,10 @@ export class Engine {
   private x: Float64Array;
   private readonly lu: LU;
   private readonly base: Float64Array;
+  /** Parts linearised again on every Newton iteration, and that iteration's matrix. */
+  private readonly nonlinear: Element[];
+  private readonly iterLU: LU;
+  private readonly iterA: Float64Array;
   private baseFor: { dt: number; method: StepCtx["method"] } | null = null;
   /** Use backward Euler for the next step: at the start and after a jump such as a switch flip. */
   private jump = true;
@@ -48,6 +62,9 @@ export class Engine {
     this.x = new Float64Array(n);
     this.lu = new LU(n);
     this.base = new Float64Array(n * n);
+    this.nonlinear = netlist.elements.filter((e) => e.stampIter);
+    this.iterLU = new LU(n);
+    this.iterA = new Float64Array(this.nonlinear.length ? n * n : 0);
     if (previous) {
       this.time = previous.time;
       this.restoreFrom(previous);
@@ -140,34 +157,99 @@ export class Engine {
 
   /** Solve for the end of the next step. Only a committed step moves time and part state on. */
   private solve(commit: boolean): boolean {
-    const n = this.netlist.size;
-    const ctx: StepCtx = {
-      t: this.time + this.settings.dt,
-      dt: this.settings.dt,
-      method: this.jump ? "be" : this.settings.method,
-    };
     try {
-      if (this.baseFor?.dt !== ctx.dt || this.baseFor.method !== ctx.method) this.buildBase(ctx);
-      const b = new Float64Array(n);
-      const s = new Stamper(n, null, b);
-      for (const e of this.netlist.elements) e.stampStep?.(s, ctx);
-      this.x = this.lu.solve(b);
+      if (commit) return this.advance(this.settings.dt, 0);
+      // A preview that doesn't converge keeps the last solution on show.
+      const x = this.attempt(this.ctxFor(this.settings.dt));
+      if (x) this.x = x;
+      return true;
     } catch (err) {
       if (!(err instanceof SingularMatrixError)) throw err;
       this.error = this.explain(err.column);
       return false;
     }
-    if (commit) {
-      for (const e of this.netlist.elements) {
-        if (e.accept?.(this.x, ctx)) {
-          this.baseFor = null;
-          this.jump = true;
-        }
-      }
-      this.time = ctx.t;
-      if (this.baseFor) this.jump = false;
+  }
+
+  private ctxFor(dt: number): StepCtx {
+    return { t: this.time + dt, dt, method: this.jump ? "be" : this.settings.method };
+  }
+
+  /** Take a step of `dt`, or two of half that (and so on) when Newton's method doesn't converge. */
+  private advance(dt: number, depth: number): boolean {
+    const ctx = this.ctxFor(dt);
+    const x = this.attempt(ctx);
+    if (x) {
+      this.accept(x, ctx);
+      return true;
     }
-    return true;
+    if (depth >= MAX_HALVINGS) {
+      this.error = {
+        message: `The circuit did not settle at t = ${formatSI(this.time, "s")}. Try a smaller time step.`,
+        compIds: [...new Set(this.nonlinear.map((e) => e.compId))],
+      };
+      return false;
+    }
+    // Something sudden happened in this step: take it in two, starting with backward Euler.
+    this.jump = true;
+    return this.advance(dt / 2, depth + 1) && this.advance(dt / 2, depth + 1);
+  }
+
+  /** The solution at the end of a step, or null if Newton's method didn't converge. */
+  private attempt(ctx: StepCtx): Float64Array | null {
+    const n = this.netlist.size;
+    if (this.baseFor?.dt !== ctx.dt || this.baseFor.method !== ctx.method) this.buildBase(ctx);
+    const b = new Float64Array(n);
+    const s = new Stamper(n, null, b);
+    for (const e of this.netlist.elements) e.stampStep?.(s, ctx);
+    if (!this.nonlinear.length) return this.lu.solve(b);
+
+    for (const e of this.nonlinear) e.beginSolve?.();
+    const x = this.newton(this.x, b, ctx, 0);
+    if (x) return x;
+    // Gmin stepping: solve with every node leaking strongly to ground, then take the leak away.
+    let guess = this.x;
+    for (const leak of GMIN_STEPS) {
+      const next = this.newton(guess, b, ctx, leak);
+      if (!next) return null;
+      guess = next;
+    }
+    return this.newton(guess, b, ctx, 0);
+  }
+
+  private newton(guess: Float64Array, b0: Float64Array, ctx: StepCtx, leak: number): Float64Array | null {
+    const { size: n, isCurrent } = this.netlist;
+    const A = this.iterA;
+    let x = guess;
+    for (let iter = 0; iter < MAX_ITER; iter++) {
+      A.set(this.base);
+      if (leak) for (let i = 0; i < n; i++) if (!isCurrent[i]) A[i * n + i] += leak;
+      const b = b0.slice();
+      const s = new Stamper(n, A, b);
+      for (const e of this.nonlinear) e.stampIter!(s, x, ctx);
+      this.iterLU.factor(A);
+      const next = this.iterLU.solve(b);
+      let ok = true;
+      for (let i = 0; i < n && ok; i++) {
+        const tol = RELTOL * Math.max(Math.abs(next[i]), Math.abs(x[i])) + (isCurrent[i] ? ABSTOL : VNTOL);
+        if (!(Math.abs(next[i] - x[i]) <= tol)) ok = false;
+      }
+      if (ok) ok = this.nonlinear.every((e) => !e.converged || e.converged(next));
+      x = next;
+      if (ok) return x;
+    }
+    return null;
+  }
+
+  private accept(x: Float64Array, ctx: StepCtx) {
+    this.x = x;
+    for (const e of this.netlist.elements) {
+      if (e.accept?.(x, ctx)) {
+        this.baseFor = null;
+        this.jump = true;
+      }
+    }
+    this.time = ctx.t;
+    if (this.baseFor) this.jump = false;
   }
 
   private buildBase(ctx: StepCtx) {
@@ -176,7 +258,8 @@ export class Engine {
     for (let i = 0; i < n; i++) if (!isCurrent[i]) this.base[i * n + i] = GMIN;
     const s = new Stamper(n, this.base, new Float64Array(n));
     for (const e of elements) e.stampStatic?.(s, ctx);
-    this.lu.factor(this.base);
+    // A nonlinear circuit factors the full matrix on every iteration instead.
+    if (!this.nonlinear.length) this.lu.factor(this.base);
     this.baseFor = { dt: ctx.dt, method: ctx.method };
   }
 
@@ -205,6 +288,11 @@ export class Engine {
     for (const e of this.netlist.elements) {
       const k = keyOf(e);
       if (saved.has(k)) e.restore?.(saved.get(k));
+    }
+    // Node voltages that still exist are the best first guess for Newton's method.
+    for (const [key, node] of this.netlist.nodeByKey) {
+      const old = previous.netlist.nodeByKey.get(key);
+      if (node >= 0 && old !== undefined && old >= 0) this.x[node] = previous.x[old];
     }
   }
 }

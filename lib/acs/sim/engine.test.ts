@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { CircuitBuilder } from "../../sim/test-utils";
-import { compileCircuit } from "./compile";
+import { type Netlist, compileCircuit } from "./compile";
+import { type Element, GROUND } from "./element";
 import { Engine } from "./engine";
 
 function engineFor(b: CircuitBuilder, previous?: Engine) {
@@ -266,5 +267,50 @@ describe("time", () => {
     const e = new Engine(compileCircuit(b.circuit));
     expect(e.step()).toBe(false);
     expect(e.error?.compIds).toEqual([v]);
+  });
+});
+
+describe("hard steps", () => {
+  /** One node with 1 S to ground and a part that only converges once the step is at most `okDt`. */
+  function stubborn(okDt: number): Netlist {
+    let dt = 0;
+    const element: Element = {
+      compId: "x",
+      nodes: [0],
+      nonlinear: true,
+      stampIter(s, _x, ctx) {
+        dt = ctx.dt;
+        s.conductance(0, GROUND, 1);
+        s.current(GROUND, 0, 1);
+      },
+      converged: () => dt <= okDt,
+    };
+    return {
+      size: 1,
+      isCurrent: new Uint8Array(1),
+      elements: [element],
+      parts: new Map([["x", "stub"]]),
+      terminals: new Map([["x", [0]]]),
+      nodeByKey: new Map([["x.a", 0]]),
+      nodeOf: () => 0,
+      compsAt: () => ["x"],
+      errors: [],
+      fixedErrors: [],
+      warnings: [],
+    };
+  }
+
+  it("cuts a step in half until Newton's method converges", () => {
+    const e = new Engine(stubborn(2.5e-6), { settings: { dt: 1e-5 } });
+    expect(e.step()).toBe(true);
+    expect(e.time).toBeCloseTo(1e-5, 15);
+    expect(e.pinVoltage("x", "a")).toBeCloseTo(1, 9);
+  });
+
+  it("gives up with a message when even tiny steps don't converge", () => {
+    const e = new Engine(stubborn(0), { settings: { dt: 1e-5 } });
+    expect(e.step()).toBe(false);
+    expect(e.error?.message).toMatch(/did not settle/);
+    expect(e.error?.compIds).toEqual(["x"]);
   });
 });

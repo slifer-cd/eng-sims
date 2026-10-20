@@ -58,6 +58,21 @@ export class Stamper {
     this.add(k, q, -1);
   }
 
+  /**
+   * A device linearised at the operating point `v0` (terminal voltages): the current into
+   * terminal k is about `i0[k] + Σⱼ jac[k][j]·(V(nodes[j]) − v0[j])`.
+   */
+  linearized(nodes: number[], i0: number[], jac: number[][], v0: number[]) {
+    for (let k = 0; k < nodes.length; k++) {
+      let offset = i0[k];
+      for (let j = 0; j < nodes.length; j++) {
+        this.add(nodes[k], nodes[j], jac[k][j]);
+        offset -= jac[k][j] * v0[j];
+      }
+      this.rhs(nodes[k], -offset);
+    }
+  }
+
   /** The matrix part of a branch whose current (unknown k) is forced to zero, as in an open switch. */
   openRow(p: number, q: number, k: number) {
     this.add(p, k, 1);
@@ -93,8 +108,11 @@ export interface Element {
   stampStatic?(s: Stamper, ctx: StepCtx): void;
   /** Right-hand-side stamps for this step: source values, companion-model history. */
   stampStep?(s: Stamper, ctx: StepCtx): void;
+  /** Before solving a step: start the Newton guesses from the last accepted state. */
+  beginSolve?(): void;
   /** Linearised stamps around the guess x, for each Newton iteration (nonlinear parts). */
   stampIter?(s: Stamper, x: Float64Array, ctx: StepCtx): void;
+  /** Whether the solution x agrees with the operating point the last stamps were made at. */
   converged?(x: Float64Array): boolean;
   /** Commit state for an accepted step. Returns true if the static stamps changed. */
   accept?(x: Float64Array, ctx: StepCtx): boolean;

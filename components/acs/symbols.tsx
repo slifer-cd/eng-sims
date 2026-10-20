@@ -343,6 +343,100 @@ function NetLabel({ lead, props, upright }: SymbolProps) {
   );
 }
 
+/** A filled arrowhead at (x, y) pointing along angle `deg` (0 = +x). */
+function Arrowhead({ x, y, deg, color }: { x: number; y: number; deg: number; color?: string }) {
+  return (
+    <polygon
+      points="0,0 -6,-3.2 -6,3.2"
+      transform={`translate(${x} ${y}) rotate(${deg})`}
+      className={color ? undefined : "fill-chip-stroke"}
+      style={color ? { fill: color } : undefined}
+    />
+  );
+}
+
+function Diode({ partId, lead }: SymbolProps) {
+  const a = lead("a"), k = lead("k");
+  return (
+    <>
+      <Lead x1={-30} y1={0} x2={-8} y2={0} color={a} />
+      <Lead x1={8} y1={0} x2={30} y2={0} color={k} />
+      <polygon points="-8,-9 -8,9 8,0" className={`fill-chip ${BODY}`} strokeWidth={1.5} strokeLinejoin="round" />
+      {partId === "zener" ? (
+        <polyline points="4,-12 8,-9 8,9 12,12" fill="none" className={BODY} strokeWidth={2} />
+      ) : (
+        <line x1={8} y1={-9} x2={8} y2={9} className={BODY} strokeWidth={2} />
+      )}
+    </>
+  );
+}
+
+function Bjt({ partId, lead }: SymbolProps) {
+  const npn = partId === "npn";
+  const c = lead("c"), e = lead("e");
+  return (
+    <>
+      <circle cx={2} r={18} className="fill-chip/60 stroke-chip-stroke" strokeWidth={1} />
+      <Lead x1={-30} y1={0} x2={-6} y2={0} color={lead("b")} />
+      <line x1={-6} y1={-12} x2={-6} y2={12} className={BODY} strokeWidth={2.5} />
+      <polyline points="-6,-5 10,-16 10,-30" fill="none" style={{ stroke: c }} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points="-6,5 10,16 10,30" fill="none" style={{ stroke: e }} strokeWidth={2} strokeLinejoin="round" />
+      {npn ? <Arrowhead x={8} y={14.6} deg={34.5} /> : <Arrowhead x={-3} y={7} deg={214.5} />}
+    </>
+  );
+}
+
+function Jfet({ partId, lead }: SymbolProps) {
+  const n = partId === "njfet";
+  return (
+    <>
+      <Lead x1={-30} y1={0} x2={0} y2={0} color={lead("g")} />
+      <line x1={0} y1={-14} x2={0} y2={14} className={BODY} strokeWidth={2.5} />
+      <polyline points="0,-10 10,-10 10,-30" fill="none" style={{ stroke: lead("d") }} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points="0,10 10,10 10,30" fill="none" style={{ stroke: lead("s") }} strokeWidth={2} strokeLinejoin="round" />
+      {n ? <Arrowhead x={-1} y={0} deg={0} /> : <Arrowhead x={-12} y={0} deg={180} />}
+    </>
+  );
+}
+
+function Mosfet({ partId, lead }: SymbolProps) {
+  const n = partId === "nmos";
+  const d = lead("d"), src = lead("s");
+  return (
+    <>
+      <Lead x1={-30} y1={0} x2={-6} y2={0} color={lead("g")} />
+      <line x1={-6} y1={-12} x2={-6} y2={12} className={BODY} strokeWidth={2} />
+      {[-14, -4, 6].map((y) => (
+        <line key={y} x1={0} y1={y} x2={0} y2={y + 8} className={BODY} strokeWidth={2.5} />
+      ))}
+      <polyline points="0,-10 10,-10 10,-30" fill="none" style={{ stroke: d }} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points="0,10 10,10 10,30" fill="none" style={{ stroke: src }} strokeWidth={2} strokeLinejoin="round" />
+      <polyline points="0,0 10,0 10,10" fill="none" style={{ stroke: src }} strokeWidth={1.5} />
+      {n ? <Arrowhead x={1} y={0} deg={180} /> : <Arrowhead x={9} y={0} deg={0} />}
+    </>
+  );
+}
+
+function Amplifier({ partId, lead, upright }: SymbolProps) {
+  return (
+    <>
+      <Lead x1={-30} y1={-10} x2={-20} y2={-10} color={lead("minus")} />
+      <Lead x1={-30} y1={10} x2={-20} y2={10} color={lead("plus")} />
+      <Lead x1={22} y1={0} x2={30} y2={0} color={lead("out")} />
+      <polygon points="-20,-24 -20,24 22,0" className={`fill-chip ${BODY}`} strokeWidth={1.5} strokeLinejoin="round" />
+      <Label x={-14} y={-10} upright={upright} className="fill-chip-text text-[11px]">
+        −
+      </Label>
+      <Label x={-14} y={10} upright={upright} className="fill-chip-text text-[11px]">
+        +
+      </Label>
+      {partId === "comparator" && (
+        <polyline points="-4,4 1,4 1,-4 6,-4" fill="none" className={BODY} strokeWidth={1.2} />
+      )}
+    </>
+  );
+}
+
 function Unknown() {
   return (
     <>
@@ -363,6 +457,16 @@ const SYMBOLS: Record<string, (p: SymbolProps) => ReactNode> = {
   "vrail-ac": AcRail,
   iac: AcCurrentSource,
   "irail-ac": AcCurrentRail,
+  diode: Diode,
+  zener: Diode,
+  npn: Bjt,
+  pnp: Bjt,
+  njfet: Jfet,
+  pjfet: Jfet,
+  nmos: Mosfet,
+  pmos: Mosfet,
+  opamp: Amplifier,
+  comparator: Amplifier,
   vdc: Battery,
   idc: CurrentSource,
   "vrail-dc": VoltageRail,
