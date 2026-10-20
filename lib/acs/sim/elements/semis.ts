@@ -11,17 +11,23 @@ import { type CreateCtx, type Element, vAt } from "../element";
 export const VT = 0.025852;
 /** Conductance added across junctions so a reverse-biased one still has a slope. */
 const GJ = 1e-12;
-/** Exponent above which exp() continues as a straight line instead of overflowing. */
-const EXP_MAX = 80;
+/**
+ * Junction current past which the exponential carries on as a straight line, like a small
+ * series resistance. Without it a diode straight across a source asks for ~10²⁰ A and a
+ * conductance that swamps the rest of the matrix.
+ */
+const I_MAX = 100;
+/** The exponent at which a junction with saturation current `is` reaches I_MAX. */
+const expLimit = (is: number) => Math.log(1 + I_MAX / is);
 
-/** e^x and its derivative, continued linearly past EXP_MAX. */
-function expd(x: number) {
-  if (x <= EXP_MAX) {
+/** e^x and its derivative, continued linearly past `max`. */
+function expd(x: number, max: number) {
+  if (x <= max) {
     const e = Math.exp(x);
     return { v: e, d: e };
   }
-  const e = Math.exp(EXP_MAX);
-  return { v: e * (1 + x - EXP_MAX), d: e };
+  const e = Math.exp(max);
+  return { v: e * (1 + x - max), d: e };
 }
 
 /**
@@ -56,12 +62,13 @@ export function diode(c: CreateCtx, { is, n, vz }: DiodeModel): Element {
   const nvt = n * VT;
   const vcrit = vcritOf(is, nvt);
   const vzcrit = vcritOf(ZENER_KNEE, VT);
+  const cap = expLimit(is), zcap = expLimit(ZENER_KNEE);
 
   const model = (v: number) => {
-    const f = expd(v / nvt);
+    const f = expd(v / nvt, cap);
     let i = is * (f.v - 1), g = (is * f.d) / nvt;
     if (vz > 0) {
-      const r = expd(-(v + vz) / VT);
+      const r = expd(-(v + vz) / VT, zcap);
       i -= ZENER_KNEE * r.v;
       g += (ZENER_KNEE * r.d) / VT;
     }
@@ -100,6 +107,10 @@ export function diode(c: CreateCtx, { is, n, vz }: DiodeModel): Element {
       const { i } = model(v);
       return { v, i, p: v * i };
     },
+    terminalCurrents(x) {
+      const { i } = model(across(x));
+      return [i, -i];
+    },
     save: () => accepted,
     restore(state) {
       if (typeof state === "number") accepted = vd = state;
@@ -119,10 +130,11 @@ export function bjt(c: CreateCtx, polarity: 1 | -1, { is, bf, br }: BjtModel): E
   const [b, col, e] = c.nodes;
   const p = polarity;
   const vcrit = vcritOf(is, VT);
+  const cap = expLimit(is);
 
   /** Currents into base and collector, and their slopes, in the NPN frame. */
   const model = (vbe: number, vbc: number) => {
-    const f = expd(vbe / VT), r = expd(vbc / VT);
+    const f = expd(vbe / VT, cap), r = expd(vbc / VT, cap);
     const iF = is * (f.v - 1), iR = is * (r.v - 1);
     const gF = (is * f.d) / VT, gR = (is * r.d) / VT;
     return {
@@ -174,6 +186,11 @@ export function bjt(c: CreateCtx, polarity: 1 | -1, { is, bf, br }: BjtModel): E
       const ic = p * m.ic, ib = p * m.ib;
       return { v: vce, i: ic, p: vce * ic + vbeA * ib };
     },
+    terminalCurrents(x) {
+      const raw = junctions(x);
+      const m = model(raw.be, raw.bc);
+      return [p * m.ib, p * m.ic, -p * (m.ib + m.ic)];
+    },
     save: () => accepted,
     restore(state) {
       const st = state as { vbe?: unknown; vbc?: unknown };
@@ -216,6 +233,7 @@ export function fet(c: CreateCtx, polarity: 1 | -1, model: FetModel): Element {
   const [g, d, s] = c.nodes;
   const p = polarity;
   const gateVcrit = model.gateIs > 0 ? vcritOf(model.gateIs, VT) : 0;
+  const gateCap = model.gateIs > 0 ? expLimit(model.gateIs) : 0;
 
   /** Currents into [g, d, s] and their slopes against [Vg, Vd, Vs], in the actual frame. */
   const evaluate = (vgs: number, vds: number) => {
@@ -238,7 +256,7 @@ export function fet(c: CreateCtx, polarity: 1 | -1, model: FetModel): Element {
         [2, vgs],
         [1, vgs - vds],
       ] as const) {
-        const f = expd(v / VT);
+        const f = expd(v / VT, gateCap);
         const ij = model.gateIs * (f.v - 1), gj = (model.gateIs * f.d) / VT + GJ;
         currents[0] += p * ij;
         currents[term] -= p * ij;
@@ -286,6 +304,10 @@ export function fet(c: CreateCtx, polarity: 1 | -1, model: FetModel): Element {
       const { id } = evaluate(raw.gs, raw.ds);
       const v = vAt(x, d) - vAt(x, s);
       return { v, i: id, p: v * id };
+    },
+    terminalCurrents(x) {
+      const raw = frame(x);
+      return evaluate(raw.gs, raw.ds).currents;
     },
     save: () => accepted,
     restore(state) {

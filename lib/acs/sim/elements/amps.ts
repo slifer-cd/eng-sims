@@ -63,6 +63,7 @@ function amplifier(c: CreateCtx, lim: Limiter, threshold: () => number, onAccept
       // Current out of the output pin into the circuit.
       return { v: vAt(x, out), i: -x[k] };
     },
+    terminalCurrents: (x) => [0, 0, x[k]],
     voltageEdges: () => [[out, GROUND]],
     paths: () => [[out, GROUND]],
   };

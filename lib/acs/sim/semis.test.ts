@@ -58,6 +58,21 @@ describe("diodes", () => {
     expect(-e.readout(d)!.i!).toBeCloseTo((12 + e.readout(d)!.v!) / 1e3, 9);
   });
 
+  it("stays solvable straight across a voltage source", () => {
+    // No resistor: Shockley alone would ask for ~10^20 A. Past its rated current the diode
+    // carries on as a small resistance instead.
+    const b = new CircuitBuilder();
+    const v = b.add("vdc", { v: 2 }), d = b.add("diode"), g = b.add("ground");
+    b.wire([v, "p"], [d, "a"]);
+    b.wire([d, "k"], [v, "n"]);
+    b.wire([v, "n"], [g, "g"]);
+    const e = engineFor(b);
+    steps(e, 3);
+    const i = e.readout(d)!.i!;
+    expect(i).toBeGreaterThan(100);
+    expect(i).toBeLessThan(1e5);
+  });
+
   it("rectifies half of a sine wave", () => {
     const b = new CircuitBuilder();
     const s = b.add("vac", { amplitude: 10, frequency: 50 }), d = b.add("diode"), load = b.add("resistor", { r: 1e3 });

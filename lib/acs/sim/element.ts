@@ -122,6 +122,8 @@ export interface Element {
   /** Commit state for an accepted step. Returns true if the static stamps changed. */
   accept?(x: Float64Array, ctx: StepCtx): boolean;
   readout?(x: Float64Array): Readout;
+  /** Current into the part at each of its terminals (in the part's terminal order). */
+  terminalCurrents?(x: Float64Array): number[];
   /** Node pairs held at a fixed voltage difference (sources, closed switches): loops are errors. */
   voltageEdges?(): [number, number][];
   /** Node pairs this element conducts between. Default: all of its terminals. */

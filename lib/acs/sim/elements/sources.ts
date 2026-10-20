@@ -48,6 +48,7 @@ export function voltageSource(c: CreateCtx, wave: Waveform): Element {
       const v = vAt(x, p) - vAt(x, n);
       return { v, i: x[k], p: v * x[k] };
     },
+    terminalCurrents: (x) => (c.nodes.length === 1 ? [x[k]] : [x[k], -x[k]]),
     voltageEdges: () => [[p, n]],
   };
 }
@@ -71,6 +72,7 @@ export function currentSource(c: CreateCtx, wave: Waveform): Element {
       const v = vAt(x, p) - vAt(x, n);
       return { v, i: -value, p: -v * value };
     },
+    terminalCurrents: () => (c.nodes.length === 1 ? [-value] : [-value, value]),
     paths: () => [],
   };
 }

@@ -11,6 +11,10 @@ export function resistor(c: CreateCtx, r: number): Element {
       const v = vAt(x, a) - vAt(x, b);
       return { v, i: v * g, p: v * v * g };
     },
+    terminalCurrents(x) {
+      const i = (vAt(x, a) - vAt(x, b)) * g;
+      return [i, -i];
+    },
   };
 }
 
@@ -39,6 +43,7 @@ export function capacitor(c: CreateCtx, cap: number, v0: number): Element {
       const vx = vAt(x, a) - vAt(x, b);
       return { v: vx, i, p: vx * i };
     },
+    terminalCurrents: () => [i, -i],
     save: () => ({ v, i, v0 }),
     restore(state) {
       const st = state as { v?: unknown; i?: unknown; v0?: unknown };
@@ -73,6 +78,7 @@ export function inductor(c: CreateCtx, l: number, i0: number): Element {
       const vx = vAt(x, a) - vAt(x, b);
       return { v: vx, i, p: vx * i };
     },
+    terminalCurrents: () => [i, -i],
     save: () => ({ v, i, i0 }),
     restore(state) {
       const st = state as { v?: unknown; i?: unknown; i0?: unknown };
@@ -130,6 +136,7 @@ export function transformer(c: CreateCtx, l1: number, ratio: number, k: number):
       const n1 = vAt(x, p1) - vAt(x, p2), n2 = vAt(x, s1) - vAt(x, s2);
       return { v: n1, i: i1, p: n1 * i1 + n2 * i2 };
     },
+    terminalCurrents: () => [i1, -i1, i2, -i2],
     paths: () => [
       [p1, p2],
       [s1, s2],

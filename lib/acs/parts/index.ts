@@ -4,7 +4,7 @@ import { comparator, opamp } from "../sim/elements/amps";
 import { capacitor, inductor, resistor, transformer } from "../sim/elements/passive";
 import { bjt, diode, fet } from "../sim/elements/semis";
 import { type WaveformProps, currentSource, dc, voltageSource, waveform } from "../sim/elements/sources";
-import { spdt, spst } from "../sim/elements/switching";
+import { button, relay, spdt, spst } from "../sim/elements/switching";
 import type { PartSpec, PropField } from "./types";
 
 export * from "./types";
@@ -431,6 +431,64 @@ const specs: PartSpec[] = [
     ],
     create: (c) => [spdt(c, c.props.position as "a" | "b")],
     interactive: "toggle",
+  },
+  {
+    id: "button",
+    name: "Push button",
+    group: "switching",
+    keywords: ["momentary", "push", "key"],
+    terminals: TWO_TERMINAL,
+    bounds: { w: 60, h: 30 },
+    fields: [
+      {
+        key: "normally",
+        label: "When not pressed",
+        kind: "select",
+        default: "open",
+        options: [
+          { value: "open", label: "Open (makes contact when pressed)" },
+          { value: "closed", label: "Closed (breaks contact when pressed)" },
+        ],
+      },
+    ],
+    create: (c) => [button(c, c.props.normally === "closed")],
+    interactive: "momentary",
+  },
+  {
+    id: "relay",
+    name: "Relay",
+    group: "switching",
+    keywords: ["coil", "contactor", "spdt"],
+    terminals: [
+      { id: "c1", name: "Coil", x: -30, y: -20 },
+      { id: "c2", name: "Coil", x: -30, y: 20 },
+      { id: "com", name: "Common", x: 30, y: 0 },
+      { id: "nc", name: "Normally closed", x: 30, y: -20 },
+      { id: "no", name: "Normally open", x: 30, y: 20 },
+    ],
+    bounds: { w: 60, h: 60 },
+    fields: [
+      { key: "coilR", label: "Coil resistance", kind: "number", unit: "Ω", default: 100, positive: true },
+      { key: "coilL", label: "Coil inductance", kind: "number", unit: "H", default: 0.2, positive: true },
+      { key: "pullIn", label: "Pull-in current", kind: "number", unit: "A", default: 20e-3, positive: true },
+      {
+        key: "dropOut",
+        label: "Drop-out current",
+        kind: "number",
+        unit: "A",
+        default: 15e-3,
+        positive: true,
+        help: "The contacts go back below this current; keep it under the pull-in current.",
+      },
+    ],
+    valueLabel: (p) => formatSI(num(p, "coilR"), "Ω"),
+    create: (c) =>
+      relay(c, {
+        coilR: num(c.props, "coilR"),
+        coilL: num(c.props, "coilL"),
+        pullIn: num(c.props, "pullIn"),
+        dropOut: num(c.props, "dropOut"),
+      }),
   },
   {
     id: "probe",

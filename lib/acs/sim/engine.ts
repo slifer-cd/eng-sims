@@ -141,6 +141,11 @@ export class Engine {
     return nodes?.length === 1 ? this.voltage(nodes[0]) : undefined;
   }
 
+  /** Current into a part at each of its terminals, or undefined for parts without any (ground, probes). */
+  terminalCurrents(compId: string): number[] | undefined {
+    return this.netlist.elements.find((x) => x.compId === compId && x.terminalCurrents)?.terminalCurrents!(this.x);
+  }
+
   /** A switch's live position, or undefined for other parts. */
   switchValue(compId: string): SwitchValue | undefined {
     return this.netlist.elements.find((x) => x.compId === compId && x.switchValue)?.switchValue!();
